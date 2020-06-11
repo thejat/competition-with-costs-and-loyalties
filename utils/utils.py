@@ -10,7 +10,7 @@ def plot_ml_ss(p1_t_arr,p2_t_arr,ca_m_cb_arr,vert_line_loc=None,labels=None,fnam
 		print('plot_ml_ss: cannot plot without labels')
 		return
 
-	fig, ax = plt.subplots(figsize=(8, 8), dpi=300)
+	fig, ax = plt.subplots(figsize=(8,6), dpi=300)
 	pltsettings ={'linestyle':'-','alpha':0.5}
 	ax.plot(ca_m_cb_arr, p1_t_arr,**pltsettings,label=labels[0])
 	ax.plot(ca_m_cb_arr, p2_t_arr,**pltsettings,label=labels[1])
@@ -24,6 +24,22 @@ def plot_ml_ss(p1_t_arr,p2_t_arr,ca_m_cb_arr,vert_line_loc=None,labels=None,fnam
 		fig.savefig(fname)
 	plt.show()
 
+
+def plot_ml_ss_metrics(metric_a_arr,metric_b_arr,ca_m_cb_arr,vert_line_locs=None,metric='Market Share',fname=None):
+	fig, ax = plt.subplots(figsize=(8,6), dpi=300)
+	pltsettings ={'linestyle':'-','alpha':0.5}
+	ax.plot(ca_m_cb_arr, metric_a_arr,**pltsettings,label='Firm A')
+	ax.plot(ca_m_cb_arr, metric_b_arr,**pltsettings,label='Firm B')
+	if vert_line_locs is not None:
+		for vert_line_loc in vert_line_locs:
+			ax.axvline(x=vert_line_loc,color='k', linestyle='--')
+	ax.set(xlabel=r'$c_a - c_b$', ylabel=metric)
+	ax.legend(loc="best")
+	ax.grid()
+	plt.tight_layout()
+	if fname is not None:
+		fig.savefig(fname)
+	plt.show()
 
 
 if __name__=='__main__':
