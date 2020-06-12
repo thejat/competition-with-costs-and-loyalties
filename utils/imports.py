@@ -1,6 +1,9 @@
 #Core scientific modules
+import math
 import numpy as np
 from scipy.stats import uniform, norm
+from scipy.optimize import fsolve, minimize
+
 
 #Pandas, fileIO
 import os, glob

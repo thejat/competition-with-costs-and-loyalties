@@ -164,38 +164,38 @@ def get_theoretical_prices(ca,cb,la,lb):
 	temp = [paa_t,pba_t,pbb_t,pab_t]
 	return (np.round(x,3) for x in temp)
 
-def get_opt_prices_a(cb,la,ca_m_cb_arr):
+def get_opt_prices_a(cb,la,ca_arr):
 	'''
 	this function iterates over ca. cb is an input.
 	'''
-	paa_t_arr = np.zeros(ca_m_cb_arr.size)
-	pba_t_arr = np.zeros(ca_m_cb_arr.size)
-	for i,ca in enumerate(ca_m_cb_arr):
+	paa_t_arr = np.zeros(ca_arr.size)
+	pba_t_arr = np.zeros(ca_arr.size)
+	for i,ca in enumerate(ca_arr):
 		paa_t_arr[i],pba_t_arr[i],_,_ = get_theoretical_prices(ca,cb,la,la)
 	return paa_t_arr, pba_t_arr
 
 
-def get_opt_prices_b(cb,lb,ca_m_cb_arr):
+def get_opt_prices_b(cb,lb,ca_arr):
 	'''
 	this function iterates over ca. cb is an input.
 	'''
-	pbb_t_arr = np.zeros(ca_m_cb_arr.size)
-	pab_t_arr = np.zeros(ca_m_cb_arr.size)
-	for i,ca in enumerate(ca_m_cb_arr):
+	pbb_t_arr = np.zeros(ca_arr.size)
+	pab_t_arr = np.zeros(ca_arr.size)
+	for i,ca in enumerate(ca_arr):
 		_,_,pbb_t_arr[i],pab_t_arr[i] = get_theoretical_prices(ca,cb,lb,lb)
 	return pbb_t_arr, pab_t_arr
 
-def get_marketshares_profits_a(paa_arr,pba_arr,pbb_arr,pab_arr,ca_m_cb_arr,la,lb,cb,F,theta):
+def get_marketshares_profits_a(paa_arr,pba_arr,pbb_arr,pab_arr,ca_arr,la,lb,cb,F,theta):
 	'''
 	this function iterates over ca. cb is an input.
 	'''
-	marketshare_a_arr = np.zeros(ca_m_cb_arr.size)
-	total_profit_a_arr = np.zeros(ca_m_cb_arr.size)
-	marketshare_b_arr = np.zeros(ca_m_cb_arr.size)
-	total_profit_b_arr = np.zeros(ca_m_cb_arr.size)
-	prob_purchase_a_from_a_arr = np.zeros(ca_m_cb_arr.size)
-	prob_purchase_b_from_b_arr = np.zeros(ca_m_cb_arr.size)
-	for i,ca in enumerate(ca_m_cb_arr):
+	marketshare_a_arr = np.zeros(ca_arr.size)
+	total_profit_a_arr = np.zeros(ca_arr.size)
+	marketshare_b_arr = np.zeros(ca_arr.size)
+	total_profit_b_arr = np.zeros(ca_arr.size)
+	prob_purchase_a_from_a_arr = np.zeros(ca_arr.size)
+	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
+	for i,ca in enumerate(ca_arr):
 		total_profit_a_arr[i],total_profit_b_arr[i] = get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,ca,cb,F,theta)
 		marketshare_a_arr[i],marketshare_b_arr[i] = get_new_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F,theta)
 		prob_purchase_a_from_a_arr[i] = prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
