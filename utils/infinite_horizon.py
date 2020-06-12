@@ -49,12 +49,15 @@ def pbx_equations(candidates,xia,xib,ca,cb,ta,tb,F,f,deltaf):
     residual2 = pba - (cb + F(xia)*ta/f(xia) -deltaf*vbopt)
     return (residual1,residual2)
 
-def constraints(p1,p2,ca,cb,t):
-    if p1 >= ca and p2 >= cb and (0 <= p1-p2) and  (p1-p2 <= t):
+def constraints_a(paa,pba,ca,cb,ta):
+    if paa >= ca and pba >= cb and (0 <= paa-pba) and  (paa-pba <= ta):
         return True
-    else:
-        return False
+    return False
 
+def constraints_b(pbb,pab,ca,cb,tb):
+    if pbb >= cb and pab >= ca and (0 <= pbb-pab) and  (pbb-pab <= tb):
+        return True
+    return False
 
 def get_prices_xis_constraints_and_vs(ca_arr,cb,ta,tb,F,f,deltaf):
     paa_arr = np.zeros(ca_arr.size) #first index is firm, second index is customer type
@@ -76,9 +79,36 @@ def get_prices_xis_constraints_and_vs(ca_arr,cb,ta,tb,F,f,deltaf):
         vaopt_diff_arr[i] = vaopt_diff(paa_arr[i],pab_arr[i],xia_arr[i],xib_arr[i],ca,F,deltaf)
         vbopt_diff_arr[i] = vbopt_diff(pbb_arr[i],pba_arr[i],xia_arr[i],xib_arr[i],cb,F,deltaf)
         
-        if constraints(paa_arr[i],pba_arr[i],ca,cb,ta):
+        if constraints_a(paa_arr[i],pba_arr[i],ca,cb,ta):
             constraint_aa_ba_arr[i] = 1
-        if constraints(pbb_arr[i],pab_arr[i],ca,cb,tb):
+        if constraints_b(pbb_arr[i],pab_arr[i],ca,cb,tb):
             constraint_bb_ab_arr[i] = 1
 
     return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,constraint_aa_ba_arr,constraint_bb_ab_arr,vaopt_diff_arr,vbopt_diff_arr
+
+def get_vopts(paa,pab,pbb,pba,xia,xib,da,db,ca,cb,F):
+
+    #vaao, vabo
+    mat1 = np.array([[1-da*(1-F(xia)),-da*F(xia)],[-da*F(xib),1-da*(1-F(xib))]])
+    rhs1 = np.array([(1-F(xia))*(paa-ca),F(xib)*(pab-ca)])
+    sol1 = np.linalg.inv(mat1).dot(rhs1)
+    vaao,vabo = sol1[0],sol1[1]
+
+    mat2 = np.array([[1-db*(1-F(xib)),-db*F(xib)],[-db*F(xia),1-db*(1-F(xia))]])
+    rhs2 = np.array([(1-F(xib))*(pbb-cb),F(xib)*(pba-cb)])
+    sol2 = np.linalg.inv(mat2).dot(rhs2)
+    vbbo,vbao = sol2[0],sol2[1]
+
+    return vaao,vabo,vbbo,vbao
+
+def get_theoretical_px_obj(ca,cb,ta,tb,F,f,deltaf):
+
+    # xia,xib = fsolve(xi_equations, (0.5, 0.5),(ca,cb,ta,tb,F,f,deltaf))
+
+    paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,constraint_aa_ba_arr,constraint_bb_ab_arr,\
+        vaopt_diff_arr,vbopt_diff_arr = get_prices_xis_constraints_and_vs(np.array([ca]),cb,ta,tb,F,f,deltaf)
+
+    vaao,vabo,vbbo,vbao = get_vopts(paa_arr[0],pab_arr[0],pbb_arr[0],pba_arr[0],xia_arr[0],xib_arr[0],deltaf,deltaf,ca,cb,F)
+
+    return vaao,vabo,vbbo,vbao,paa_arr[0],pab_arr[0],pbb_arr[0],pba_arr[0],constraint_aa_ba_arr[0],constraint_bb_ab_arr[0]
+
