@@ -96,7 +96,7 @@ def get_vopts(paa,pab,pbb,pba,xia,xib,da,db,ca,cb,F):
     vaao,vabo = sol1[0],sol1[1]
 
     mat2 = np.array([[1-db*(1-F(xib)),-db*F(xib)],[-db*F(xia),1-db*(1-F(xia))]])
-    rhs2 = np.array([(1-F(xib))*(pbb-cb),F(xib)*(pba-cb)])
+    rhs2 = np.array([(1-F(xib))*(pbb-cb),F(xia)*(pba-cb)])
     sol2 = np.linalg.inv(mat2).dot(rhs2)
     vbbo,vbao = sol2[0],sol2[1]
 
