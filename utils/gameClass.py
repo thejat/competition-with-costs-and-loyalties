@@ -17,11 +17,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
-import dsGameSolver.gameClass_checkInput as gameClass_checkInput
-import dsGameSolver.homCreate as homCreate
-import dsGameSolver.homSym as homSym
-import dsGameSolver.homInit as homInit
-import dsGameSolver.homCont as homCont
+import utils.gameClass_checkInput as gameClass_checkInput
+import utils.homCreate as homCreate
+import utils.homSym as homSym
+import utils.homInit as homInit
+import utils.homCont as homCont
 
 
 

@@ -14,7 +14,7 @@ and/or modify it under the terms of the MIT License.
 
 
 import numpy as np
-import dsGameSolver.gameClass as gameClass
+import utils.gameClass as gameClass
 
 
 

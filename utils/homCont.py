@@ -19,7 +19,7 @@ import time
 import datetime
 import sys
 
-import dsGameSolver.homCont_subfunctions as func
+import utils.homCont_subfunctions as func
 
 
 

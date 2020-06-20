@@ -104,7 +104,9 @@ def get_vopts(paa,pab,pbb,pba,xia,xib,da,db,ca,cb,F):
 
     return vaao,vabo,vbbo,vbao
 
-def get_theoretical_px_obj(ca,cb,la,lb,F,f,df):
+def get_theoretical_px_obj(ca,cb,la,lb,dist,df):
+
+    _,F,f    = get_xi_dist(dist)
 
     # xia,xib = fsolve(xi_equations, (0.5, 0.5),(ca,cb,la,lb,F,f,df))
 
@@ -203,3 +205,34 @@ def get_transition_prob_matrices(ca,cb,maxpx,npts,dist,la,lb):
     transition_prob_matrices.append(transition_prob_matrix)
 
     return transition_prob_matrices
+
+
+
+def get_computed_equilibrium(payoff_matrices,transition_prob_matrices,discount_factors,pa_arr,pb_arr,show_progress=True,plot_path=True):
+    equilibrium = dsSolve(payoff_matrices,transition_prob_matrices,discount_factors,show_progress,plot_path)
+    eq_indices1 = np.argmax(equilibrium['strategies'][0],axis=1)
+    temp1 = [pa_arr[eq_indices1[0]],pb_arr[eq_indices1[1]],equilibrium['stateValues'][0][0],equilibrium['stateValues'][0][1]]
+    temp1a = ['paa','pba','vaa','vba']
+    result1 = {temp1a[i]:np.round(x,3) for i,x in enumerate(temp1)}
+    eq_indices2 = np.argmax(equilibrium['strategies'][1],axis=1)
+    temp2 = [pa_arr[eq_indices2[0]],pb_arr[eq_indices2[1]],equilibrium['stateValues'][1][0],equilibrium['stateValues'][1][1]]
+    temp2a = ['pab','pbb','vab','vbb']
+    result2 = {temp2a[i]:np.round(x,3) for i,x in enumerate(temp2)}
+    return result1,result2
+
+def get_computed_px_obj(ca,cb,la,lb,dist,deltaf,maxpx=10,npts=20,show_progress=False,plot_path=False):
+    #data for solver: payoff matrices
+    pa_arr,pb_arr,obja_state_a,objb_state_a,\
+    constraint_state_a = get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la)
+    _,_,obja_state_b,objb_state_b,\
+    constraint_state_b = get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb)
+    payoff_matrices = [ ## s = \alpha
+                        np.array([obja_state_a,objb_state_a]),
+                        ## s = \beta
+                        np.array([obja_state_b,objb_state_b])]
+
+    transition_prob_matrices = get_transition_prob_matrices(ca,cb,maxpx,npts,dist,la,lb)
+    result1_c,result2_c = get_computed_equilibrium(payoff_matrices,transition_prob_matrices,deltaf,
+                             pa_arr,pb_arr,show_progress,plot_path)
+
+    return result1_c,result2_c
