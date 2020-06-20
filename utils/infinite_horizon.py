@@ -1,6 +1,8 @@
 from utils.imports import *
 from utils.single_stage import get_xi_dist,get_payoff_aa,get_payoff_ba,get_payoff_bb,get_payoff_ab,\
                     prob_cust_a_purchase_from_a,prob_cust_b_purchase_from_b
+from utils.gameSolver import dsSolve
+
 '''
 In the below variables, first index is always firm, and second index is the strong sub-market
 For instance, in paa_arr, first 'a' represents firm A's pricing, second 'a' represents A's strong sub-market 'alpha'
