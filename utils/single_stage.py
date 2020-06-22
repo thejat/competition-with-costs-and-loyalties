@@ -94,7 +94,7 @@ def get_objs(paa,pba,pbb,pab,ca,cb,la,lb,dist):
 	return (np.round(x,3) for x in temp)
 
 
-def get_example(region=1,dist='uniform'):
+def get_example(region=1,dist='uniform',deltaf=0):
 	if dist != 'uniform':
 		return NotImplementedError()
 
@@ -133,7 +133,13 @@ def get_example(region=1,dist='uniform'):
 		ca,cb,la,lb,paa_t,pba_t,pbb_t,pab_t = [0]*8
 
 	print('ca',ca,'cb',cb,'la',la,'lb',lb)
-	temp = [ca,cb,la,lb,paa_t,pba_t,pbb_t,pab_t]
+	temp = [ca,cb,la,lb]
+
+	if deltaf<1e-2 and dist=='uniform':
+	    result_ssa = {'paa_sst':paa_t,'pba_sst':pba_t}
+	    result_ssb = {'pab_sst':pab_t,'pbb_sst':pbb_t}
+	    print({**result_ssa,**result_ssb})
+
 	return (np.round(x,3) for x in temp)
 
 
