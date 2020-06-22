@@ -258,7 +258,25 @@ def get_both_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
     result1_c = {x:np.round(y,3) for x,y in result1_c.items()}
     result2_c = {x:np.round(y,3) for x,y in result2_c.items()}
 
-    print('computed:', result1_c)
-    print('theory:',result1_t)
-    print('computed:',result2_c)
-    print('theory:',result2_t)
+    # print('computed:', result1_c)
+    # print('theory:',result1_t)
+    # print('computed:',result2_c)
+    # print('theory:',result2_t)
+
+    # return result1_t,result2_t,result1_c,result2_c
+    # return {'theory': {**result1_t, **result2_t},'comp': {**result1_c, **result2_c}}
+    
+    return pd.DataFrame({
+        'paa':np.array([result1_t['paa'],result1_c['paa']]),
+        'pba':np.array([result1_t['pba'],result1_c['pba']]),
+        'pbb':np.array([result2_t['pbb'],result2_c['pbb']]),
+        'pab':np.array([result2_t['pab'],result2_c['pab']]),
+        'xia':np.array([result1_t['xia'],result1_c['xia']]),
+        'xib':np.array([result2_t['xib'],result2_c['xib']]),
+        'vaa':np.array([result1_t['vaa'],result1_c['vaa']]),
+        'vab':np.array([result2_t['vab'],result2_c['vab']]),
+        'vbb':np.array([result2_t['vbb'],result2_c['vbb']]),
+        'vba':np.array([result1_t['vba'],result1_c['vba']]),
+        'constraint_aa_ba':np.array([result1_t['constraint_aa_ba'],result1_c['constraint_aa_ba']]),
+        'constraint_bb_ab':np.array([result2_t['constraint_bb_ab'],result2_c['constraint_bb_ab']])
+        })
