@@ -94,9 +94,11 @@ def get_objs(paa,pba,pbb,pab,ca,cb,la,lb,dist):
 	return (np.round(x,3) for x in temp)
 
 
-def get_example(region=1):
-	#From the four propositions in the paper: ml-ss
+def get_example(region=1,dist='uniform'):
+	if dist != 'uniform':
+		return NotImplementedError()
 
+	#From the four propositions in the paper: ml-ss
 	if region==1:
 		# Region I:  lb < ca-cb < 2la
 		ca,cb,la,lb    = 2,0,2,1
@@ -130,6 +132,7 @@ def get_example(region=1):
 		print('region not defined')
 		ca,cb,la,lb,paa_t,pba_t,pbb_t,pab_t = [0]*8
 
+	print('ca',ca,'cb',cb,'la',la,'lb',lb)
 	temp = [ca,cb,la,lb,paa_t,pba_t,pbb_t,pab_t]
 	return (np.round(x,3) for x in temp)
 

@@ -62,7 +62,10 @@ def constraints_state_b(pbb,pab,ca,cb,lb):
         return True
     return False
 
-def get_prices_xis_constraints_and_vs(ca_arr,cb,la,lb,F,f,df):
+def get_prices_xis_constraints_and_vs(ca_arr,cb,la,lb,dist,df,flag_theory=True,maxpx=10,npts=20,show_progress=False,plot_path=False):
+
+    _,F,f    = get_xi_dist(dist)
+
     paa_arr = np.zeros(ca_arr.size) #first index is firm, second index is customer type
     pba_arr = np.zeros(ca_arr.size)
     pbb_arr = np.zeros(ca_arr.size)
@@ -71,23 +74,26 @@ def get_prices_xis_constraints_and_vs(ca_arr,cb,la,lb,F,f,df):
     xib_arr = np.zeros(ca_arr.size)
     constraint_aa_ba_arr = np.zeros(ca_arr.size)
     constraint_bb_ab_arr = np.zeros(ca_arr.size)
-    vaopt_diff_arr = np.zeros(ca_arr.size)
-    vbopt_diff_arr = np.zeros(ca_arr.size)
+    vaao_arr = np.zeros(ca_arr.size)
+    vabo_arr = np.zeros(ca_arr.size)
+    vbbo_arr = np.zeros(ca_arr.size)
+    vbao_arr = np.zeros(ca_arr.size)
 
     for i,ca in enumerate(ca_arr):
-        xia_arr[i],xib_arr[i] = fsolve(xi_equations, (0.5, 0.5),(ca,cb,la,lb,F,f,df))
-        paa_arr[i],pab_arr[i] = fsolve(pax_equations, (0.5, 0.5),(xia_arr[i],xib_arr[i],ca,cb,la,lb,F,f,df))
-        pbb_arr[i],pba_arr[i] = fsolve(pbx_equations, (0.5, 0.5),(xia_arr[i],xib_arr[i],ca,cb,la,lb,F,f,df))
-        
-        vaopt_diff_arr[i] = vaopt_diff(paa_arr[i],pab_arr[i],xia_arr[i],xib_arr[i],ca,F,df)
-        vbopt_diff_arr[i] = vbopt_diff(pbb_arr[i],pba_arr[i],xia_arr[i],xib_arr[i],cb,F,df)
-        
+        if flag_theory:
+            paa_arr[i],pab_arr[i],pbb_arr[i],pba_arr[i], xia_arr[i],xib_arr[i],vaao_arr[i],vabo_arr[i],vbbo_arr[i],vbao_arr[i]  \
+                = get_theoretical_px_obj(ca,cb,la,lb,F,f,df)
+        else:
+            paa_arr[i],pab_arr[i],pbb_arr[i],pba_arr[i], xia_arr[i],xib_arr[i],vaao_arr[i],vabo_arr[i],vbbo_arr[i],vbao_arr[i]  \
+                = get_computed_px_obj(ca,cb,la,lb,F,f,df,maxpx,npts,show_progress,plot_path)
+
+
         if constraints_state_a(paa_arr[i],pba_arr[i],ca,cb,la):
             constraint_aa_ba_arr[i] = 1
         if constraints_state_b(pbb_arr[i],pab_arr[i],ca,cb,lb):
             constraint_bb_ab_arr[i] = 1
 
-    return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,constraint_aa_ba_arr,constraint_bb_ab_arr,vaopt_diff_arr,vbopt_diff_arr
+    return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,constraint_aa_ba_arr,constraint_bb_ab_arr
 
 def get_vopts(paa,pab,pbb,pba,xia,xib,da,db,ca,cb,F):
 
@@ -104,18 +110,14 @@ def get_vopts(paa,pab,pbb,pba,xia,xib,da,db,ca,cb,F):
 
     return vaao,vabo,vbbo,vbao
 
-def get_theoretical_px_obj(ca,cb,la,lb,dist,df):
+def get_theoretical_px_obj(ca,cb,la,lb,F,f,df):
 
-    _,F,f    = get_xi_dist(dist)
+    xia,xib = fsolve(xi_equations, (0.5, 0.5),(ca,cb,la,lb,F,f,df)) #hardcoded initial point for fsolve
+    paa,pab = fsolve(pax_equations, (0.5, 0.5),(xia,xib,ca,cb,la,lb,F,f,df)) #hardcoded initial point for fsolve
+    pbb,pba = fsolve(pbx_equations, (0.5, 0.5),(xia,xib,ca,cb,la,lb,F,f,df)) #hardcoded initial point for fsolve
+    vaao,vabo,vbbo,vbao = get_vopts(paa,pab,pbb,pba,xia,xib,df,df,ca,cb,F)
 
-    # xia,xib = fsolve(xi_equations, (0.5, 0.5),(ca,cb,la,lb,F,f,df))
-
-    paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,constraint_aa_ba_arr,constraint_bb_ab_arr,\
-        vaopt_diff_arr,vbopt_diff_arr = get_prices_xis_constraints_and_vs(np.array([ca]),cb,la,lb,F,f,df)
-
-    vaao,vabo,vbbo,vbao = get_vopts(paa_arr[0],pab_arr[0],pbb_arr[0],pba_arr[0],xia_arr[0],xib_arr[0],df,df,ca,cb,F)
-
-    return vaao,vabo,vbbo,vbao,paa_arr[0],pab_arr[0],pbb_arr[0],pba_arr[0],constraint_aa_ba_arr[0],constraint_bb_ab_arr[0]
+    return paa,pab,pbb,pba,xia,xib,vaao,vabo,vbbo,vbao
 
 
 '''
@@ -134,9 +136,8 @@ def get_common_price_spaces(ca,cb,maxpx,npts):
 
     return pa_common_arr,pb_common_arr
 
-def get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
+def get_payoff_matrices_state_a(ca,cb,maxpx,npts,F,f,la):
 
-    _,F,f = get_xi_dist(dist)
     pa_state_a_arr,pb_state_a_arr = get_common_price_spaces(ca,cb,maxpx,npts)
     '''
      pa_state_a_arr : array of A's prices for its strong sub-market
@@ -157,9 +158,8 @@ def get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
 
     return pa_state_a_arr,pb_state_a_arr,obja_state_a,objb_state_a,constraint_state_a
 
-def get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
+def get_payoff_matrices_state_b(ca,cb,maxpx,npts,F,f,lb):
 
-    _,F,f = get_xi_dist(dist)
     pa_state_b_arr,pb_state_b_arr = get_common_price_spaces(ca,cb,maxpx,npts)
     '''
      pa_state_b_arr : array of A's prices for its weak sub-market
@@ -181,9 +181,8 @@ def get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
     return pa_state_b_arr,pb_state_b_arr,obja_state_b,objb_state_b,constraint_state_b
 
 
-def get_transition_prob_matrices(ca,cb,maxpx,npts,dist,la,lb):
+def get_transition_prob_matrices(ca,cb,maxpx,npts,F,f,la,lb):
 
-    _,F,f = get_xi_dist(dist)
     pa_arr,pb_arr = get_common_price_spaces(ca,cb,maxpx,npts)
 
     transition_prob_matrices = []
@@ -220,19 +219,46 @@ def get_computed_equilibrium(payoff_matrices,transition_prob_matrices,discount_f
     result2 = {temp2a[i]:np.round(x,3) for i,x in enumerate(temp2)}
     return result1,result2
 
-def get_computed_px_obj(ca,cb,la,lb,dist,deltaf,maxpx=10,npts=20,show_progress=False,plot_path=False):
+def get_computed_px_obj(ca,cb,la,lb,F,f,deltaf,maxpx=10,npts=20,show_progress=False,plot_path=False):
     #data for solver: payoff matrices
     pa_arr,pb_arr,obja_state_a,objb_state_a,\
-    constraint_state_a = get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la)
+    constraint_state_a = get_payoff_matrices_state_a(ca,cb,maxpx,npts,F,f,la)
     _,_,obja_state_b,objb_state_b,\
-    constraint_state_b = get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb)
+    constraint_state_b = get_payoff_matrices_state_b(ca,cb,maxpx,npts,F,f,lb)
     payoff_matrices = [ ## s = \alpha
                         np.array([obja_state_a,objb_state_a]),
                         ## s = \beta
                         np.array([obja_state_b,objb_state_b])]
 
-    transition_prob_matrices = get_transition_prob_matrices(ca,cb,maxpx,npts,dist,la,lb)
+    transition_prob_matrices = get_transition_prob_matrices(ca,cb,maxpx,npts,F,f,la,lb)
     result1_c,result2_c = get_computed_equilibrium(payoff_matrices,transition_prob_matrices,deltaf,
                              pa_arr,pb_arr,show_progress,plot_path)
 
-    return result1_c,result2_c
+    xia = (result1_c['paa'] - result1_c['pba'])/la
+    xib = (result2_c['pbb'] - result2_c['pab'])/lb
+
+    return result1_c['paa'],result2_c['pab'],result2_c['pbb'],result1_c['pba'],xia,xib,result1_c['vaa'],result2_c['vab'],result2_c['vbb'],result1_c['vba']
+
+
+
+def get_both_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
+    #ml ih theory
+    paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,constraint_aa_ba_arr,constraint_bb_ab_arr \
+    = get_prices_xis_constraints_and_vs(np.array([ca]),cb,la,lb,dist,deltaf,flag_theory=True)
+    result1_t = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0], 'constraint_aa_ba':constraint_aa_ba_arr[0]}
+    result2_t = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 'constraint_bb_ab':constraint_bb_ab_arr[0]}
+    result1_t = {x:np.round(y,3) for x,y in result1_t.items()}
+    result2_t = {x:np.round(y,3) for x,y in result2_t.items()}
+
+    #ml ih computational
+    paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,constraint_aa_ba_arr,constraint_bb_ab_arr \
+     = get_prices_xis_constraints_and_vs(np.array([ca]),cb,la,lb,dist,deltaf,False,maxpx,npts,False,False)
+    result1_c = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0], 'constraint_aa_ba':constraint_aa_ba_arr[0]}
+    result2_c = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 'constraint_bb_ab':constraint_bb_ab_arr[0]}
+    result1_c = {x:np.round(y,3) for x,y in result1_c.items()}
+    result2_c = {x:np.round(y,3) for x,y in result2_c.items()}
+
+    print('computed:', result1_c)
+    print('theory:',result1_t)
+    print('computed:',result2_c)
+    print('theory:',result2_t)
