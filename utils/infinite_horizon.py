@@ -266,7 +266,7 @@ def get_both_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
     # return result1_t,result2_t,result1_c,result2_c
     # return {'theory': {**result1_t, **result2_t},'comp': {**result1_c, **result2_c}}
     
-    return pd.DataFrame({
+    return pd.DataFrame({'type':['theory','computed'],
         'paa':np.array([result1_t['paa'],result1_c['paa']]),
         'pba':np.array([result1_t['pba'],result1_c['pba']]),
         'pbb':np.array([result2_t['pbb'],result2_c['pbb']]),
