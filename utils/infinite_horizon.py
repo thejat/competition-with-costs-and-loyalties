@@ -1,14 +1,14 @@
 from utils.imports import *
 from utils.gameSolver import dsSolve
-from utils.single_stage import get_xi_dist,
-					ml_get_payoff_aa,
-					ml_get_payoff_ba,
-					ml_get_payoff_bb,
-					ml_get_payoff_ab,
-					ml_prob_cust_a_purchase_from_a,
-					ml_prob_cust_b_purchase_from_b,
-					ml_get_payoff_matrices_state_a,
-					ml_get_payoff_matrices_state_b,
+from utils.single_stage import get_xi_dist,\
+					ml_get_payoff_aa,\
+					ml_get_payoff_ba,\
+					ml_get_payoff_bb,\
+					ml_get_payoff_ab,\
+					ml_prob_cust_a_purchase_from_a,\
+					ml_prob_cust_b_purchase_from_b,\
+					ml_get_payoff_matrices_state_a,\
+					ml_get_payoff_matrices_state_b,\
 					get_common_price_spaces                    
 
 '''
@@ -132,7 +132,7 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 		transition_prob_matrix = np.zeros((len(pa_arr),len(pb_arr),2))
 		for i,pa in enumerate(pa_arr):
 			for j,pb in enumerate(pb_arr):
-				transition_prob_matrix[i,j,0] = prob_cust_a_purchase_from_a(pa,pb,la,F)  #from alpha to set alpha
+				transition_prob_matrix[i,j,0] = ml_prob_cust_a_purchase_from_a(pa,pb,la,F)  #from alpha to set alpha
 				transition_prob_matrix[i,j,1] = 1-transition_prob_matrix[i,j,0] #transitioning to set beta
 
 		transition_prob_matrices.append(transition_prob_matrix)
@@ -140,7 +140,7 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 		transition_prob_matrix = np.zeros((len(pa_arr),len(pb_arr),2))
 		for i,pa in enumerate(pa_arr):
 			for j,pb in enumerate(pb_arr):
-				transition_prob_matrix[i,j,1] = prob_cust_b_purchase_from_b(pb,pa,lb,F)#transitioning to set beta
+				transition_prob_matrix[i,j,1] = ml_prob_cust_b_purchase_from_b(pb,pa,lb,F)#transitioning to set beta
 				transition_prob_matrix[i,j,0] = 1-transition_prob_matrix[i,j,1]  #from beta to set alpha
 
 		transition_prob_matrices.append(transition_prob_matrix)
@@ -148,7 +148,7 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 		return transition_prob_matrices
 
 
-	#data for solver: payoff matrices
+	#data for solver: payoff matrices	
 	pa_arr,pb_arr,obja_state_a,objb_state_a,\
 	constraint_state_a = ml_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la)
 	_,_,obja_state_b,objb_state_b,\
@@ -159,8 +159,9 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 						np.array([obja_state_b,objb_state_b])]
 
 	transition_prob_matrices = ml_get_transition_prob_matrices(ca,cb,maxpx,npts,F,f,la,lb)
-	result1_c,result2_c = compute_equilibrium(payoff_matrices,transition_prob_matrices,deltaf,
-							 pa_arr,pb_arr,show_progress,plot_path)
+	# set_trace()
+	result1_c,result2_c = compute_infinite_horizon_equilibrium(payoff_matrices,pa_arr,pb_arr,transition_prob_matrices,deltaf,
+							 show_progress,plot_path)
 
 	xia = (result1_c['paa'] - result1_c['pba'])/la
 	xib = (result2_c['pbb'] - result2_c['pab'])/lb

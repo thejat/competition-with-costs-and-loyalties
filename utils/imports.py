@@ -4,6 +4,8 @@ import numpy as np
 from scipy.stats import uniform, norm
 from scipy.optimize import fsolve, minimize
 
+#debug
+from IPython.core.debugger import set_trace
 
 #Pandas, fileIO
 import os, glob
