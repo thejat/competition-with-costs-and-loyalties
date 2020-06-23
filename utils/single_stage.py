@@ -1,149 +1,69 @@
 from utils.imports import *
+from utils.gameSolver import dsSolve
 
 '''
-In the below variables, first index is always firm, and second index is the strong sub-market
+In the variables below, first index is always firm, and second index is the strong sub-market
 For instance, in paa_arr, first 'a' represents firm A's pricing, second 'a' represents A's strong sub-market 'alpha'
 '''
 
-def init_single_stage_a(ca,cb,maxpx,npts):
+### General loyalty model
 
-	paa_arr = np.linspace(ca,maxpx,npts) #A's price for its strong sub-market
-	pba_arr = np.linspace(cb,maxpx,npts) #B's price for its weak sub-market
-	objaa = np.zeros((paa_arr.size,pba_arr.size)) #A's obj for its strong sub-market
-	objba = np.zeros((paa_arr.size,pba_arr.size)) #B's obj for its weak sub-market
-	constraintmatA = np.zeros((paa_arr.size,pba_arr.size)) #px constraints related to A's sub-market
-	return paa_arr,pba_arr,objaa,objba,constraintmatA
+def firm_constraint_across(p_strong_market,p_weak_market):
+	if (p_strong_market >= p_weak_market): return True
+	return False
 
-def init_single_stage_b(ca,cb,maxpx,npts):
-	pbb_arr = np.linspace(cb,maxpx,npts)
-	pab_arr = np.linspace(ca,maxpx,npts)
-	objbb = np.zeros((pbb_arr.size,pab_arr.size))
-	objab = np.zeros((pbb_arr.size,pab_arr.size))
-	constraintmatB = np.zeros((pbb_arr.size,pab_arr.size))
-	return pbb_arr,pab_arr,objbb,objab,constraintmatB
+def firm_constraint_cost(px,cost):
+	if px >= cost: return True
+	return False
 
 def get_xi_dist(dist='normal'):
 
-    if dist=='uniform':
-        return (np.arange(0.0, 1.0, 0.1),uniform.cdf,uniform.pdf)
-    return (np.arange(-1.0, 1.0, 0.1),norm.cdf,norm.pdf)
+	if dist=='uniform':
+		return (uniform.cdf,uniform.pdf)
+	else:
+		return NotImplementedError # (norm.cdf,norm.pdf)
 
 
-def constraints_a(paa,pba,ca,cb,la): return (paa >= ca) and (pba >= cb) and (0 <= paa-pba) and (paa-pba <= la)
-def constraints_b(pbb,pab,cb,ca,lb): return (pbb >= cb) and (pab >= ca) and (0 <= pbb-pab) and (pbb-pab <= lb)
+def get_common_price_spaces(ca,cb,maxpx,npts):
+	pa_common_arr = np.linspace(ca,maxpx,npts) #A's price for its strong sub-market
+	pb_common_arr = np.linspace(cb,maxpx,npts) #B's price for its weak sub-market
+	return pa_common_arr,pb_common_arr
 
-def prob_cust_a_purchase_from_a(paa,pba,la,F): return 1-F((paa-pba)/la)
-def prob_cust_b_purchase_from_b(pbb,pab,lb,F): return 1-F((pbb-pab)/lb)
-def get_payoff_aa(paa,ca,F,pba,la): return (paa-ca)*prob_cust_a_purchase_from_a(paa,pba,la,F) #caution: theta is ignored here
-def get_payoff_ba(pba,cb,F,paa,la): return (pba-cb)*(1-prob_cust_a_purchase_from_a(paa,pba,la,F))
-def get_payoff_bb(pbb,cb,F,pab,lb): return (pbb-cb)*prob_cust_b_purchase_from_b(pbb,pab,lb,F)
-def get_payoff_ab(pab,ca,F,pbb,lb): return (pab-ca)*(1-prob_cust_b_purchase_from_b(pbb,pab,lb,F))
 
-def get_new_market_shares(paa,pba,pbb,pab,la,lb,F,theta): 
-	new_market_share_a = theta*prob_cust_a_purchase_from_a(paa,pba,la,F) + (1-theta)*(1-prob_cust_b_purchase_from_b(pbb,pab,lb,F))
-	new_market_share_b = (1-theta)*prob_cust_b_purchase_from_b(pbb,pab,lb,F) + theta*(1-prob_cust_a_purchase_from_a(paa,pba,la,F))
+def compute_single_stage_equilibrium(objaa,objba,objbb,objab,paa_arr,pba_arr,pbb_arr,pab_arr):
+
+	def get_computed_equilibrium(payoffs,p1_arr,p2_arr):
+		equilibrium = dsSolve(payoffs)
+		eq_indices = np.argmax(equilibrium['strategies'][0],axis=1)
+		temp = [p1_arr[eq_indices[0]],p2_arr[eq_indices[1]],equilibrium['stateValues'][0][0],equilibrium['stateValues'][0][1]]
+		return (np.round(x,3) for x in temp)
+
+	paa_c,pba_c,objaa_c,objba_c = get_computed_equilibrium([np.array([objaa,objba])],paa_arr,pba_arr)
+	pab_c,pbb_c,objab_c,objbb_c = get_computed_equilibrium([np.array([objab,objbb])],pab_arr,pbb_arr)
+
+	return {'paa':paa_c,'pba':pba_c,'pbb':pbb_c,'pab':pab_c,'objaa':objaa_c,'objba':objba_c,'objbb':objbb_c,'objab':objab_c}
+
+
+### Multiplicative loyalty model
+
+def ml_prob_cust_a_purchase_from_a(paa,pba,la,F): return 1-F((paa-pba)/la)
+def ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F): return 1-F((pbb-pab)/lb)
+def ml_get_payoff_aa(paa,ca,F,pba,la): return (paa-ca)*ml_prob_cust_a_purchase_from_a(paa,pba,la,F) #caution: theta is ignored here
+def ml_get_payoff_ba(pba,cb,F,paa,la): return (pba-cb)*(1-ml_prob_cust_a_purchase_from_a(paa,pba,la,F))
+def ml_get_payoff_bb(pbb,cb,F,pab,lb): return (pbb-cb)*ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F)
+def ml_get_payoff_ab(pab,ca,F,pbb,lb): return (pab-ca)*(1-ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F))
+
+def ml_get_market_shares(paa,pba,pbb,pab,la,lb,F,theta): 
+	new_market_share_a = theta*ml_prob_cust_a_purchase_from_a(paa,pba,la,F) + (1-theta)*(1-ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F))
+	new_market_share_b = (1-theta)*ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F) + theta*(1-ml_prob_cust_a_purchase_from_a(paa,pba,la,F))
 	return (new_market_share_a,new_market_share_b)
 
-def get_total_profits(paa,pba,pbb,pab,la,lb,ca,cb,F,theta):
-	total_profit_a = (paa-ca)*theta*get_payoff_aa(paa,ca,F,pba,la) + (pab-ca)*(1-theta)*get_payoff_ab(pab,ca,F,pbb,lb) # see Eq 1 in paper
-	total_profit_b = (pbb-cb)*(1-theta)*get_payoff_bb(pbb,cb,F,pab,lb) + (pba-cb)*theta*get_payoff_ba(pba,cb,F,paa,la)
+def ml_get_total_profits(paa,pba,pbb,pab,la,lb,ca,cb,F,theta):
+	total_profit_a = (paa-ca)*theta*ml_get_payoff_aa(paa,ca,F,pba,la) + (pab-ca)*(1-theta)*ml_get_payoff_ab(pab,ca,F,pbb,lb) # see Eq 1 in paper
+	total_profit_b = (pbb-cb)*(1-theta)*ml_get_payoff_bb(pbb,cb,F,pab,lb) + (pba-cb)*theta*ml_get_payoff_ba(pba,cb,F,paa,la)
 	return (total_profit_a,total_profit_b)
 
-def get_payoffs_a(ca,cb,maxpx,npts,dist,la):
-
-	_,F,f = get_xi_dist(dist)
-
-	paa_arr,pba_arr,objaa,objba,cmata = init_single_stage_a(ca,cb,maxpx,npts)
-
-
-	for i,paa in enumerate(paa_arr):
-	    for j,pba in enumerate(pba_arr):
-	        if constraints_a(paa,pba,ca,cb,la):
-	            cmata[i,j] = 1 
-	            objaa[i,j] = get_payoff_aa(paa,ca,F,pba,la)
-	            objba[i,j] = get_payoff_ba(pba,cb,F,paa,la)
-
-	return paa_arr,pba_arr,objaa,objba,cmata
-
-def get_payoffs_b(ca,cb,maxpx,npts,dist,lb):
-
-	_,F,f = get_xi_dist(dist)
-
-	pbb_arr,pab_arr,objbb,objab,cmatb = init_single_stage_b(ca,cb,maxpx,npts)
-
-
-	for i,pbb in enumerate(pbb_arr):
-	    for j,pab in enumerate(pab_arr):
-	        if constraints_b(pbb,pab,cb,ca,lb):
-	            cmatb[i,j] = 1 
-	            objbb[i,j] = get_payoff_bb(pbb,cb,F,pab,lb)
-	            objab[i,j] = get_payoff_ab(pab,ca,F,pbb,lb)
-
-	return pbb_arr,pab_arr,objbb,objab,cmatb
-
-
-def get_objs(paa,pba,pbb,pab,ca,cb,la,lb,dist):
-
-	_,F,f = get_xi_dist(dist)
-	objaa = get_payoff_aa(paa,ca,F,pba,la)
-	objba = get_payoff_ba(pba,cb,F,paa,la)
-	objbb = get_payoff_bb(pbb,cb,F,pab,lb)
-	objab = get_payoff_ab(pab,ca,F,pbb,lb)
-
-	temp  = [objaa, objba, objbb, objab]
-	return (np.round(x,3) for x in temp)
-
-
-def get_example(region=1,dist='uniform',deltaf=0):
-	if dist != 'uniform':
-		return NotImplementedError()
-
-	#From the four propositions in the paper: ml-ss
-	if region==1:
-		# Region I:  lb < ca-cb < 2la
-		ca,cb,la,lb    = 2,0,2,1
-
-		paa_t = 0.33*(2*ca+cb+2*la) #suffix 'T' means theoretical/analytical
-		pba_t = 0.33*(2*cb+ca+la)
-		pbb_t = ca
-		pab_t = ca
-	elif region==2:
-		# Region II: ca-cb > min(2la,lb)
-		ca,cb,la,lb    = 5,0,2,1
-		paa_t = ca
-		pba_t = ca-la
-		pbb_t = ca
-		pab_t = ca
-	elif region==3:
-		# Region III:  ca-cb < min(2la,lb)
-		ca,cb,la,lb    = 1,0,2,2
-		paa_t = 0.33*(2*ca+cb+2*la)
-		pba_t = 0.33*(2*cb+ca+la)
-		pbb_t = 0.33*(2*cb+ca+2*lb)
-		pab_t = 0.33*(2*ca+cb+lb)
-	elif region==4:
-		# Region IV:  2la < ca-cb < lb
-		ca,cb,la,lb    = 3,0,1,4
-		paa_t = ca
-		pba_t = ca-la
-		pbb_t = 0.33*(2*cb+ca+2*lb)
-		pab_t = 0.33*(2*ca+cb+lb)
-	else:
-		print('region not defined')
-		ca,cb,la,lb,paa_t,pba_t,pbb_t,pab_t = [0]*8
-
-	print('ca',ca,'cb',cb,'la',la,'lb',lb)
-	temp = [ca,cb,la,lb]
-
-	if deltaf<1e-2 and dist=='uniform':
-	    result_ssa = {'paa_sst':paa_t,'pba_sst':pba_t}
-	    result_ssb = {'pab_sst':pab_t,'pbb_sst':pbb_t}
-	    print({**result_ssa,**result_ssb})
-
-	return (np.round(x,3) for x in temp)
-
-
-def get_theoretical_prices(ca,cb,la,lb):
+def ml_get_ss_prices_theory(ca,cb,la,lb):
 	#From the four propositions in the paper: ml-ss
 
 	if (lb <= ca-cb) and (ca-cb < 2*la): #Region I
@@ -173,42 +93,124 @@ def get_theoretical_prices(ca,cb,la,lb):
 	temp = [paa_t,pba_t,pbb_t,pab_t]
 	return (np.round(x,3) for x in temp)
 
-def get_opt_prices_a(cb,la,ca_arr):
+def ml_get_example_in_region(region=1,dist='uniform',deltaf=0):
+	if dist != 'uniform':
+		return NotImplementedError()
+
+	#From the four propositions in the paper: ml-ss
+	if region==1: 	# Region I:  lb < ca-cb < 2la
+		ca,cb,la,lb    = 2,0,2,1
+	elif region==2: # Region II: ca-cb > min(2la,lb)
+		ca,cb,la,lb    = 5,0,2,1
+	elif region==3: # Region III:  ca-cb < min(2la,lb)
+		ca,cb,la,lb    = 1,0,2,2
+	elif region==4: # Region IV:  2la < ca-cb < lb
+		ca,cb,la,lb    = 3,0,1,4
+	else:
+		return NotImplementedError()
+
+	instance = {'ca':ca,'cb':cb,'la':la,'lb':lb}
+	print(instance)
+
+	if deltaf<1e-2 and dist=='uniform':
+		paa_t,pba_t,pbb_t,pab_t = ml_get_ss_prices_theory(ca,cb,la,lb)
+		result_ssa = {'paa_sst':paa_t,'pba_sst':pba_t}
+		result_ssb = {'pab_sst':pab_t,'pbb_sst':pbb_t}
+		print({**result_ssa,**result_ssb})
+
+	return (np.round(instance[x],3) for x in instance)
+
+def ml_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
+
+	F,f = get_xi_dist(dist)
+
+	pa_state_a_arr,pb_state_a_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+	'''
+	 pa_state_a_arr : array of A's prices for its strong sub-market
+	 pb_state_a_arr: array of B's prices for its weak sub-market
+	'''
+
+	obja_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #A's obj for its strong sub-market
+	objb_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #B's obj for its weak sub-market
+	constraint_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #px constraints related to A's strong sub-market
+
+
+	for i,paa in enumerate(pa_state_a_arr): #firm A is the row player
+		for j,pba in enumerate(pb_state_a_arr):
+			if ll_constraint(paa,pba,la,0,dist) and firm_constraint_cost(paa,ca) and firm_constraint_cost(pba,cb):
+				constraint_state_a[i,j] = 1 
+				obja_state_a[i,j] = ml_get_payoff_aa(paa,ca,F,pba,la)
+				objb_state_a[i,j] = ml_get_payoff_ba(pba,cb,F,paa,la)
+
+	return pa_state_a_arr,pb_state_a_arr,obja_state_a,objb_state_a,constraint_state_a
+
+def ml_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
+
+	F,f = get_xi_dist(dist)
+
+	pa_state_b_arr,pb_state_b_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+	'''
+	 pa_state_b_arr : array of A's prices for its weak sub-market
+	 pb_state_b_arr: array of B's prices for its strong sub-market
+	'''
+
+	obja_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #A's obj for its weak sub-market
+	objb_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #B's obj for its strong sub-market
+	constraint_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #px constraints related to B's strong sub-market
+
+
+	for i,pab in enumerate(pa_state_b_arr): #firm A is the row player
+		for j,pbb in enumerate(pb_state_b_arr):
+			if ll_constraint(pbb,pab,lb,0,dist) and firm_constraint_cost(pbb,cb) and firm_constraint_cost(pab,ca):
+				constraint_state_b[i,j] = 1 
+				obja_state_b[i,j] = ml_get_payoff_ab(pab,ca,F,pbb,lb)
+				objb_state_b[i,j] = ml_get_payoff_bb(pbb,cb,F,pab,lb)
+
+	return pa_state_b_arr,pb_state_b_arr,obja_state_b,objb_state_b,constraint_state_b
+
+def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,flag_theory=True):
 	'''
 	this function iterates over ca. cb is an input.
 	'''
 	paa_t_arr = np.zeros(ca_arr.size)
 	pba_t_arr = np.zeros(ca_arr.size)
-	for i,ca in enumerate(ca_arr):
-		paa_t_arr[i],pba_t_arr[i],_,_ = get_theoretical_prices(ca,cb,la,la)
-	return paa_t_arr, pba_t_arr
-
-
-def get_opt_prices_b(cb,lb,ca_arr):
-	'''
-	this function iterates over ca. cb is an input.
-	'''
 	pbb_t_arr = np.zeros(ca_arr.size)
 	pab_t_arr = np.zeros(ca_arr.size)
-	for i,ca in enumerate(ca_arr):
-		_,_,pbb_t_arr[i],pab_t_arr[i] = get_theoretical_prices(ca,cb,lb,lb)
-	return pbb_t_arr, pab_t_arr
-
-def get_marketshares_profits_a(paa_arr,pba_arr,pbb_arr,pab_arr,ca_arr,la,lb,cb,F,theta):
-	'''
-	this function iterates over ca. cb is an input.
-	'''
 	marketshare_a_arr = np.zeros(ca_arr.size)
 	total_profit_a_arr = np.zeros(ca_arr.size)
 	marketshare_b_arr = np.zeros(ca_arr.size)
 	total_profit_b_arr = np.zeros(ca_arr.size)
 	prob_purchase_a_from_a_arr = np.zeros(ca_arr.size)
 	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
-	for i,ca in enumerate(ca_arr):
-		total_profit_a_arr[i],total_profit_b_arr[i] = get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,ca,cb,F,theta)
-		marketshare_a_arr[i],marketshare_b_arr[i] = get_new_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F,theta)
-		prob_purchase_a_from_a_arr[i] = prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
-		prob_purchase_b_from_b_arr[i] = prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
 
-	return marketshare_a_arr,marketshare_b_arr,total_profit_a_arr,total_profit_b_arr,prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr
+	for i,ca in enumerate(ca_arr):
+		if flag_theory is True:
+			paa_t_arr[i],pba_t_arr[i],pbb_t_arr[i],pab_t_arr[i] = ml_get_ss_prices_theory(ca,cb,la,lb)
+		else:
+			return NotImplementedError()
+
+	total_profit_a_arr[i],total_profit_b_arr[i] = ml_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,ca,cb,F,theta)
+	marketshare_a_arr[i],marketshare_b_arr[i] = ml_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F,theta)
+	prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
+	prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
+
+
+	return paa_t_arr, pba_t_arr,pbb_t_arr, pab_t_arr, \
+			marketshare_a_arr,marketshare_b_arr, \
+			total_profit_a_arr,total_profit_b_arr, \
+			prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr
+
+
+
+### Linear loyalty model (subsumes multiplicative and additive)
+
+def ll_constraint(p_firm,p_rival,l_firm,s_firm = 0,dist='uniform'):
+	''' 
+	let _firm suffix represent the firm for which state a implies customer is in its strong market
+	e.g., in state where cust is in B's strong mkt and ml:  (0 <= pbb-pab) and  (pbb-pab <= lb) 
+	'''
+	if (s_firm <= p_firm-p_rival) and  \
+		(p_firm-p_rival <= l_firm + s_firm):
+		return True
+	return False
 
