@@ -59,8 +59,8 @@ def ml_get_market_shares(paa,pba,pbb,pab,la,lb,F,theta):
 	return (new_market_share_a,new_market_share_b)
 
 def ml_get_total_profits(paa,pba,pbb,pab,la,lb,ca,cb,F,theta):
-	total_profit_a = (paa-ca)*theta*ml_get_payoff_aa(paa,ca,F,pba,la) + (pab-ca)*(1-theta)*ml_get_payoff_ab(pab,ca,F,pbb,lb) # see Eq 1 in paper
-	total_profit_b = (pbb-cb)*(1-theta)*ml_get_payoff_bb(pbb,cb,F,pab,lb) + (pba-cb)*theta*ml_get_payoff_ba(pba,cb,F,paa,la)
+	total_profit_a = theta*ml_get_payoff_aa(paa,ca,F,pba,la) + (1-theta)*ml_get_payoff_ab(pab,ca,F,pbb,lb) # see Eq 1 in paper
+	total_profit_b = (1-theta)*ml_get_payoff_bb(pbb,cb,F,pab,lb) + theta*ml_get_payoff_ba(pba,cb,F,paa,la)
 	return (total_profit_a,total_profit_b)
 
 def ml_get_ss_prices_theory(ca,cb,la,lb):
@@ -168,38 +168,52 @@ def ml_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
 
 	return pa_state_b_arr,pb_state_b_arr,obja_state_b,objb_state_b,constraint_state_b
 
-def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,flag_theory=True):
+def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist='uniform',theta=0.5,flag_theory=True):
 	'''
 	this function iterates over ca. cb is an input.
 	'''
-	paa_t_arr = np.zeros(ca_arr.size)
-	pba_t_arr = np.zeros(ca_arr.size)
-	pbb_t_arr = np.zeros(ca_arr.size)
-	pab_t_arr = np.zeros(ca_arr.size)
+	if dist != 'uniform':
+		return NotImplementedError()
+
+	F,f = get_xi_dist(dist)
+
+	paa_arr = np.zeros(ca_arr.size)
+	pba_arr = np.zeros(ca_arr.size)
+	pbb_arr = np.zeros(ca_arr.size)
+	pab_arr = np.zeros(ca_arr.size)
+	objaa_arr = np.zeros(ca_arr.size)
+	objba_arr = np.zeros(ca_arr.size)
+	objbb_arr = np.zeros(ca_arr.size)
+	objab_arr = np.zeros(ca_arr.size)
 	marketshare_a_arr = np.zeros(ca_arr.size)
-	total_profit_a_arr = np.zeros(ca_arr.size)
 	marketshare_b_arr = np.zeros(ca_arr.size)
+	total_profit_a_arr = np.zeros(ca_arr.size)
 	total_profit_b_arr = np.zeros(ca_arr.size)
 	prob_purchase_a_from_a_arr = np.zeros(ca_arr.size)
 	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
 
 	for i,ca in enumerate(ca_arr):
 		if flag_theory is True:
-			paa_t_arr[i],pba_t_arr[i],pbb_t_arr[i],pab_t_arr[i] = ml_get_ss_prices_theory(ca,cb,la,lb)
+			paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ml_get_ss_prices_theory(ca,cb,la,lb)
 		else:
 			return NotImplementedError()
 
-	total_profit_a_arr[i],total_profit_b_arr[i] = ml_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,ca,cb,F,theta)
-	marketshare_a_arr[i],marketshare_b_arr[i] = ml_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F,theta)
-	prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
-	prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
+		objaa_arr[i] = ml_get_payoff_aa(paa_arr[i],ca,F,pba_arr[i],la)
+		objba_arr[i] = ml_get_payoff_ba(pba_arr[i],cb,F,paa_arr[i],la)
+		objbb_arr[i] = ml_get_payoff_bb(pbb_arr[i],cb,F,pab_arr[i],lb)
+		objab_arr[i] = ml_get_payoff_ab(pab_arr[i],ca,F,pbb_arr[i],lb)
+		marketshare_a_arr[i],marketshare_b_arr[i] = ml_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F,theta)
+		total_profit_a_arr[i],total_profit_b_arr[i] = ml_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,ca,cb,F,theta)
+		prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
+		prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
 
 
-	return paa_t_arr, pba_t_arr,pbb_t_arr, pab_t_arr, \
-			marketshare_a_arr,marketshare_b_arr, \
-			total_profit_a_arr,total_profit_b_arr, \
-			prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr
-
+	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
+				'objaa':objaa_arr,'objba':objba_arr,'objbb':objbb_arr,'objab':objab_arr,
+				'marketshare_a':marketshare_a_arr,'marketshare_b':marketshare_b_arr,
+				'total_profit_a':total_profit_a_arr,'total_profit_b':total_profit_b_arr,
+				'prob_purchase_a_from_a':prob_purchase_a_from_a_arr,
+				'prob_purchase_b_from_b':prob_purchase_b_from_b_arr})
 
 
 ### Linear loyalty model (subsumes multiplicative and additive)
