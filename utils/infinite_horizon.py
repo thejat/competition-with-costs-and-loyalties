@@ -9,7 +9,10 @@ from utils.single_stage import get_xi_dist,\
 					ml_prob_cust_b_purchase_from_b,\
 					ml_get_payoff_matrices_state_a,\
 					ml_get_payoff_matrices_state_b,\
-					get_common_price_spaces                    
+					get_common_price_spaces,\
+					ll_constraint,\
+					firm_constraint_cost,\
+					firm_constraint_across                    
 
 '''
 In the below variables, first index is always firm, and second index is the strong sub-market
@@ -37,6 +40,7 @@ def compute_infinite_horizon_equilibrium(payoff_matrices,pa_arr,pb_arr,transitio
 
 
 ### Multiplicative loyalty model
+
 
 def ml_constraints_state_a(paa,pba,ca,cb,la):
 	if paa >= ca and pba >= cb and (0 <= paa-pba) and  (paa-pba <= la):
@@ -180,6 +184,8 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,max
 	xib_arr = np.zeros(ca_arr.size)
 	constraint_aa_ba_arr = np.zeros(ca_arr.size)
 	constraint_bb_ab_arr = np.zeros(ca_arr.size)
+	constraint_cross_a_arr = np.zeros(ca_arr.size)
+	constraint_cross_b_arr = np.zeros(ca_arr.size)
 	vaao_arr = np.zeros(ca_arr.size)
 	vabo_arr = np.zeros(ca_arr.size)
 	vbbo_arr = np.zeros(ca_arr.size)
@@ -193,28 +199,39 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,max
 			paa_arr[i],pab_arr[i],pbb_arr[i],pba_arr[i], xia_arr[i],xib_arr[i],vaao_arr[i],vabo_arr[i],vbbo_arr[i],vbao_arr[i]  \
 				= ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist,maxpx,npts,show_progress,plot_path)
 
-
-		if ml_constraints_state_a(paa_arr[i],pba_arr[i],ca,cb,la):
+		if ll_constraint(paa_arr[i],pba_arr[i],la,0,dist) and firm_constraint_cost(paa_arr[i],ca) and firm_constraint_cost(pba_arr[i],cb):
 			constraint_aa_ba_arr[i] = 1
-		if ml_constraints_state_b(pbb_arr[i],pab_arr[i],ca,cb,lb):
+		if ll_constraint(pbb_arr[i],pab_arr[i],lb,0,dist) and firm_constraint_cost(pbb_arr[i],cb) and firm_constraint_cost(pab_arr[i],ca):
 			constraint_bb_ab_arr[i] = 1
+		if firm_constraint_across(paa_arr[i],pab_arr[i]):
+			constraint_cross_a_arr[i] = 1 
+		if firm_constraint_across(pbb_arr[i],pba_arr[i]):
+			constraint_cross_b_arr[i] = 1
 
-	return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,constraint_aa_ba_arr,constraint_bb_ab_arr
+	return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
+		constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr
 
 def ml_compare_two_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
+
 	#ml ih theory
-	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,constraint_aa_ba_arr,constraint_bb_ab_arr \
-	= ml_get_metric_arrs_vs_camcb(np.array([ca]),cb,la,lb,dist,deltaf,flag_theory=True)
-	result1_t = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0], 'constraint_aa_ba':constraint_aa_ba_arr[0]}
-	result2_t = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 'constraint_bb_ab':constraint_bb_ab_arr[0]}
+	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
+	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr \
+		= ml_get_metric_arrs_vs_camcb(np.array([ca]),cb,la,lb,dist,deltaf,flag_theory=True)
+	result1_t = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0],
+		'constraint_aa_ba':constraint_aa_ba_arr[0],'constraint_cross_a':constraint_cross_a_arr[0] }
+	result2_t = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 
+		'constraint_bb_ab':constraint_bb_ab_arr[0],'constraint_cross_b': constraint_cross_b_arr[0]}
 	result1_t = {x:np.round(y,3) for x,y in result1_t.items()}
 	result2_t = {x:np.round(y,3) for x,y in result2_t.items()}
 
 	#ml ih computational
-	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,constraint_aa_ba_arr,constraint_bb_ab_arr \
-	 = ml_get_metric_arrs_vs_camcb(np.array([ca]),cb,la,lb,dist,deltaf,False,maxpx,npts,False,False)
-	result1_c = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0], 'constraint_aa_ba':constraint_aa_ba_arr[0]}
-	result2_c = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 'constraint_bb_ab':constraint_bb_ab_arr[0]}
+	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
+	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr \
+	 	= ml_get_metric_arrs_vs_camcb(np.array([ca]),cb,la,lb,dist,deltaf,False,maxpx,npts,False,False)
+	result1_c = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0],
+		'constraint_aa_ba':constraint_aa_ba_arr[0],'constraint_cross_a':constraint_cross_a_arr[0] }
+	result2_c = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 
+		'constraint_bb_ab':constraint_bb_ab_arr[0],'constraint_cross_b': constraint_cross_b_arr[0]}
 	result1_c = {x:np.round(y,3) for x,y in result1_c.items()}
 	result2_c = {x:np.round(y,3) for x,y in result2_c.items()}
 	
@@ -230,7 +247,9 @@ def ml_compare_two_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
 		'vbb':np.array([result2_t['vbb'],result2_c['vbb']]),
 		'vba':np.array([result1_t['vba'],result1_c['vba']]),
 		'constraint_aa_ba':np.array([result1_t['constraint_aa_ba'],result1_c['constraint_aa_ba']]),
-		'constraint_bb_ab':np.array([result2_t['constraint_bb_ab'],result2_c['constraint_bb_ab']])
+		'constraint_bb_ab':np.array([result2_t['constraint_bb_ab'],result2_c['constraint_bb_ab']]),
+		'constraint_cross_a':np.array([result1_t['constraint_cross_a'],result1_c['constraint_cross_a']]),
+		'constraint_cross_b':np.array([result2_t['constraint_cross_b'],result2_c['constraint_cross_b']])
 		})
 
 
