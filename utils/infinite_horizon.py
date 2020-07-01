@@ -67,11 +67,11 @@ def ml_get_metrics_theory(ca,cb,la,lb,F,f,deltaf,dist='uniform'):
 		residual1 = (xia-gammaa)*(delbydel+F(xib)+1) \
 					+ ((2*F(xia)-1)/f(xia))*(delbydel + F(xib) +F(xia)) \
 					+ (F(xia)/f(xia)) \
-					- ((1-F(xib)*lb)/(la*f(xib)) -F(xib)*(gammaa + xib*lb/la ))
+					- (((1-F(xib))*lb)/(la*f(xib)) -F(xib)*(gammaa + xib*lb/la ))
 		residual2 = (xib-gammab)*(delbydel+F(xia)+1) \
 					+ ((2*F(xib)-1)/f(xib))*(delbydel + F(xib) +F(xia)) \
 					+ (F(xib)/f(xib)) \
-					- ((1-F(xia)*la)/(lb*f(xia)) -F(xia)*(gammab + xia*la/lb ))
+					- (((1-F(xia))*la)/(lb*f(xia)) -F(xia)*(gammab + xia*la/lb ))
 		
 		return (residual1,residual2)
 
