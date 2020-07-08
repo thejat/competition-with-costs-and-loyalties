@@ -197,7 +197,7 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,max
 	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr,\
 	marketshare_a_arr,marketshare_b_arr,total_profit_a_arr,total_profit_b_arr,\
 	prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr \
-		= ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,maxpx=10,npts=20,show_progress=False,plot_path=False)
+		= ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory,maxpx,npts,show_progress,plot_path)
 
 	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
 		'vaa':vaao_arr,'vba':vbao_arr,'vbb':vbbo_arr,'vab':vabo_arr,
