@@ -172,7 +172,53 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 
 	return result1_c['paa'],result2_c['pab'],result2_c['pbb'],result1_c['pba'],xia,xib,result1_c['vaa'],result2_c['vab'],result2_c['vbb'],result1_c['vba']
 
+
+
+def ml_get_market_shares(paa,pba,pbb,pab,la,lb,F): 
+
+	praa = ml_prob_cust_a_purchase_from_a(paa,pba,la,F)
+	prbb = ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F)
+
+	A = np.array([[praa-1,1-prbb],[1,1]])
+	b = np.array([0,1])
+	thetavec = np.linalg.solve(A, b)
+	new_market_share_a = thetavec[0]
+	new_market_share_b = thetavec[1]
+	return (new_market_share_a,new_market_share_b)
+
+def ml_get_total_profits(vaa,vab,vbb,vba,theta):
+	total_profit_a = theta*vaa + (1-theta)*vab
+	total_profit_b = (1-theta)*vbb + theta*vba
+	return (total_profit_a,total_profit_b)
+
 def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,maxpx=10,npts=20,show_progress=False,plot_path=False):
+
+	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
+	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr,\
+	marketshare_a_arr,marketshare_b_arr,total_profit_a_arr,total_profit_b_arr,\
+	prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr \
+		= ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,maxpx=10,npts=20,show_progress=False,plot_path=False)
+
+	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
+		'vaa':vaao_arr,'vba':vbao_arr,'vbb':vbbo_arr,'vab':vabo_arr,
+		'marketshare_a':marketshare_a_arr,'marketshare_b':marketshare_b_arr,
+		'total_profit_a':total_profit_a_arr,'total_profit_b':total_profit_b_arr,
+		'prob_purchase_a_from_a':prob_purchase_a_from_a_arr,
+		'prob_purchase_b_from_b':prob_purchase_b_from_b_arr,
+		'constraint_aa_ba_arr':constraint_aa_ba_arr,'constraint_bb_ab_arr':constraint_bb_ab_arr,
+		'constraint_cross_a_arr':constraint_cross_a_arr,'constraint_cross_b_arr':constraint_cross_b_arr,
+		'xia':xia_arr,'xib':xib_arr
+		})	
+
+
+def ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,maxpx=10,npts=20,show_progress=False,plot_path=False):
+
+	#make this function output a list of arrays needed for ml_compare_two_solutions
+	# and made a simple wrapper that outputs a df, similar to the single stage setting
+
+
+	if dist != 'uniform':
+		return NotImplementedError()
 
 	F,f    = get_xi_dist(dist)
 
@@ -190,6 +236,13 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,max
 	vabo_arr = np.zeros(ca_arr.size)
 	vbbo_arr = np.zeros(ca_arr.size)
 	vbao_arr = np.zeros(ca_arr.size)
+	marketshare_a_arr = np.zeros(ca_arr.size)
+	marketshare_b_arr = np.zeros(ca_arr.size)
+	total_profit_a_arr = np.zeros(ca_arr.size)
+	total_profit_b_arr = np.zeros(ca_arr.size)
+	prob_purchase_a_from_a_arr = np.zeros(ca_arr.size)
+	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
+
 
 	for i,ca in enumerate(ca_arr):
 		if flag_theory:
@@ -208,15 +261,25 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,max
 		if firm_constraint_across(pbb_arr[i],pba_arr[i]):
 			constraint_cross_b_arr[i] = 1
 
+
+		marketshare_a_arr[i],marketshare_b_arr[i] = ml_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F)
+		total_profit_a_arr[i],total_profit_b_arr[i] = ml_get_total_profits(vaao_arr[i],vabo_arr[i],vbbo_arr[i],vbao_arr[i],marketshare_a_arr[i])
+		prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
+		prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
+
 	return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
-		constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr
+		constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr,\
+		marketshare_a_arr,marketshare_b_arr,total_profit_a_arr,total_profit_b_arr,\
+		prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr
 
 def ml_compare_two_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
 
 	#ml ih theory
 	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
-	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr \
-		= ml_get_metric_arrs_vs_camcb(np.array([ca]),cb,la,lb,dist,deltaf,flag_theory=True)
+	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr, \
+	marketshare_a_arr,marketshare_b_arr,total_profit_a_arr,total_profit_b_arr,\
+	prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr \
+		= ml_get_metric_arrs_vs_camcb_nodf(np.array([ca]),cb,la,lb,dist,deltaf,flag_theory=True)
 	result1_t = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0],
 		'constraint_aa_ba':constraint_aa_ba_arr[0],'constraint_cross_a':constraint_cross_a_arr[0] }
 	result2_t = {'pab':pab_arr[0],'pbb':pbb_arr[0],'vab':vabo_arr[0],'vbb':vbbo_arr[0], 'xib':xib_arr[0], 
@@ -226,7 +289,9 @@ def ml_compare_two_solutions(ca,cb,la,lb,maxpx,npts,deltaf,dist):
 
 	#ml ih computational
 	paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
-	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr \
+	constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr, \
+	marketshare_a_arr,marketshare_b_arr,total_profit_a_arr,total_profit_b_arr,\
+	prob_purchase_a_from_a_arr,prob_purchase_b_from_b_arr \
 	 	= ml_get_metric_arrs_vs_camcb(np.array([ca]),cb,la,lb,dist,deltaf,False,maxpx,npts,False,False)
 	result1_c = {'paa':paa_arr[0],'pba':pba_arr[0],'vaa':vaao_arr[0],'vba':vbao_arr[0], 'xia':xia_arr[0],
 		'constraint_aa_ba':constraint_aa_ba_arr[0],'constraint_cross_a':constraint_cross_a_arr[0] }
