@@ -172,8 +172,6 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 
 	return result1_c['paa'],result2_c['pab'],result2_c['pbb'],result1_c['pba'],xia,xib,result1_c['vaa'],result2_c['vab'],result2_c['vbb'],result1_c['vba']
 
-
-
 def ml_get_market_shares(paa,pba,pbb,pab,la,lb,F): 
 
 	praa = ml_prob_cust_a_purchase_from_a(paa,pba,la,F)
@@ -209,7 +207,6 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,max
 		'constraint_cross_a_arr':constraint_cross_a_arr,'constraint_cross_b_arr':constraint_cross_b_arr,
 		'xia':xia_arr,'xib':xib_arr
 		})	
-
 
 def ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=True,maxpx=10,npts=20,show_progress=False,plot_path=False):
 
@@ -260,7 +257,7 @@ def ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=Tru
 			constraint_aa_ba_arr[i] = 1
 		if ll_constraint(pbb_arr[i],pab_arr[i],lb,0,dist) and firm_constraint_cost(pbb_arr[i],cb) and firm_constraint_cost(pab_arr[i],ca):
 			constraint_bb_ab_arr[i] = 1
-		if firm_constraint_across(paa_arr[i],pab_arr[i]):
+		if firm_constraint_across(paa_arr[i],pab_arr[i]): #this constraint is not being imposed while defining feasible actions
 			constraint_cross_a_arr[i] = 1 
 		if firm_constraint_across(pbb_arr[i],pba_arr[i]):
 			constraint_cross_b_arr[i] = 1
