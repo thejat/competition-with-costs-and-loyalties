@@ -23,12 +23,10 @@ def get_xi_dist(dist='normal'):
 	else:
 		return NotImplementedError # (norm.cdf,norm.pdf)
 
-
 def get_common_price_spaces(ca,cb,maxpx,npts):
 	pa_common_arr = np.linspace(ca,maxpx,npts) #A's price for its strong sub-market
 	pb_common_arr = np.linspace(cb,maxpx,npts) #B's price for its weak sub-market
 	return pa_common_arr,pb_common_arr
-
 
 def compute_single_stage_equilibrium(objaa,objba,objbb,objab,paa_arr,pba_arr,pbb_arr,pab_arr):
 
