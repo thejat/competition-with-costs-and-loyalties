@@ -220,6 +220,8 @@ def ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=Tru
 	if dist != 'uniform':
 		return NotImplementedError()
 
+	print('ml_get_metric_arrs_vs_camcb_nodf start: ',datetime.datetime.now())
+
 	F,f    = get_xi_dist(dist)
 
 	paa_arr = np.zeros(ca_arr.size) #first index is firm, second index is customer type
@@ -245,6 +247,8 @@ def ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=Tru
 
 
 	for i,ca in enumerate(ca_arr):
+		print('i,ca,time: ',i,np.round(ca,3),datetime.datetime.now())
+
 		if flag_theory:
 			paa_arr[i],pab_arr[i],pbb_arr[i],pba_arr[i], xia_arr[i],xib_arr[i],vaao_arr[i],vabo_arr[i],vbbo_arr[i],vbao_arr[i]  \
 				= ml_get_metrics_theory(ca,cb,la,lb,F,f,deltaf,dist)
@@ -266,6 +270,9 @@ def ml_get_metric_arrs_vs_camcb_nodf(ca_arr,cb,la,lb,dist,deltaf,flag_theory=Tru
 		total_profit_a_arr[i],total_profit_b_arr[i] = ml_get_total_profits(vaao_arr[i],vabo_arr[i],vbbo_arr[i],vbao_arr[i],marketshare_a_arr[i])
 		prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
 		prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
+
+
+	print('ml_get_metric_arrs_vs_camcb_nodf end: ',datetime.datetime.now())
 
 	return paa_arr,pba_arr,pbb_arr,pab_arr,xia_arr,xib_arr,vaao_arr,vabo_arr,vbbo_arr,vbao_arr,\
 		constraint_aa_ba_arr,constraint_bb_ab_arr,constraint_cross_a_arr,constraint_cross_b_arr,\
