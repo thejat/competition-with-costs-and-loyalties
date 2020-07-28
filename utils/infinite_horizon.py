@@ -1,8 +1,6 @@
 from utils.imports import *
 from utils.gameSolver import dsSolve
 from utils.single_stage import get_xi_dist,\
-					ml_get_payoff_matrices_state_a,\
-					ml_get_payoff_matrices_state_b,\
 					get_common_price_spaces,\
 					ll_constraint,\
 					firm_constraint_cost,\

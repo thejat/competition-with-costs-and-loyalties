@@ -101,103 +101,6 @@ def ml_get_example_in_region(region=1,dist='uniform',deltaf=0):
 
 	return (np.round(instance[x],3) for x in instance)
 
-def ml_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
-
-	F,f = get_xi_dist(dist)
-
-	pa_state_a_arr,pb_state_a_arr = get_common_price_spaces(ca,cb,maxpx,npts)
-	'''
-	 pa_state_a_arr : array of A's prices for its strong sub-market
-	 pb_state_a_arr: array of B's prices for its weak sub-market
-	'''
-
-	obja_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #A's obj for its strong sub-market
-	objb_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #B's obj for its weak sub-market
-	constraint_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #px constraints related to A's strong sub-market
-
-
-	for i,paa in enumerate(pa_state_a_arr): #firm A is the row player
-		for j,pba in enumerate(pb_state_a_arr):
-			if ll_constraint(paa,pba,la,0,dist) and firm_constraint_cost(paa,ca) and firm_constraint_cost(pba,cb):
-				constraint_state_a[i,j] = 1 
-				obja_state_a[i,j] = ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa=0)
-				objb_state_a[i,j] = ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa=0)
-
-	return pa_state_a_arr,pb_state_a_arr,obja_state_a,objb_state_a,constraint_state_a
-
-def ml_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
-
-	F,f = get_xi_dist(dist)
-
-	pa_state_b_arr,pb_state_b_arr = get_common_price_spaces(ca,cb,maxpx,npts)
-	'''
-	 pa_state_b_arr : array of A's prices for its weak sub-market
-	 pb_state_b_arr: array of B's prices for its strong sub-market
-	'''
-
-	obja_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #A's obj for its weak sub-market
-	objb_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #B's obj for its strong sub-market
-	constraint_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #px constraints related to B's strong sub-market
-
-
-	for i,pab in enumerate(pa_state_b_arr): #firm A is the row player
-		for j,pbb in enumerate(pb_state_b_arr):
-			if ll_constraint(pbb,pab,lb,0,dist) and firm_constraint_cost(pbb,cb) and firm_constraint_cost(pab,ca):
-				constraint_state_b[i,j] = 1 
-				obja_state_b[i,j] = ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb=0)
-				objb_state_b[i,j] = ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb=0)
-
-	return pa_state_b_arr,pb_state_b_arr,obja_state_b,objb_state_b,constraint_state_b
-
-def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist='uniform',theta=0.5,flag_theory=True):
-	'''
-	this function iterates over ca. cb is an input.
-	'''
-	if dist != 'uniform':
-		return NotImplementedError()
-
-	F,f = get_xi_dist(dist)
-
-	paa_arr = np.zeros(ca_arr.size)
-	pba_arr = np.zeros(ca_arr.size)
-	pbb_arr = np.zeros(ca_arr.size)
-	pab_arr = np.zeros(ca_arr.size)
-	objaa_arr = np.zeros(ca_arr.size)
-	objba_arr = np.zeros(ca_arr.size)
-	objbb_arr = np.zeros(ca_arr.size)
-	objab_arr = np.zeros(ca_arr.size)
-	marketshare_a_arr = np.zeros(ca_arr.size)
-	marketshare_b_arr = np.zeros(ca_arr.size)
-	total_profit_a_arr = np.zeros(ca_arr.size)
-	total_profit_b_arr = np.zeros(ca_arr.size)
-	prob_purchase_a_from_a_arr = np.zeros(ca_arr.size)
-	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
-
-	for i,ca in enumerate(ca_arr):
-		if flag_theory is True:
-			paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ml_get_ss_prices_theory(ca,cb,la,lb)
-		else:
-			return NotImplementedError()
-
-		objaa_arr[i] = ll_get_individual_payoff_aa(paa_arr[i],pba_arr[i],ca,F,la,sa=0)
-		objba_arr[i] = ll_get_individual_payoff_ba(paa_arr[i],pba_arr[i],cb,F,la,sa=0)
-		objbb_arr[i] = ll_get_individual_payoff_bb(pbb_arr[i],pab_arr[i],cb,F,lb,sb=0)
-		objab_arr[i] = ll_get_individual_payoff_ab(pbb_arr[i],pab_arr[i],ca,F,lb,sb=0)
-		marketshare_a_arr[i],marketshare_b_arr[i] \
-			= ll_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],F,theta,la,lb,sa=0,sb=0)
-		total_profit_a_arr[i],total_profit_b_arr[i] \
-			= ll_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],F,theta,ca,cb,la,lb,sa=0,sb=0)
-		prob_purchase_a_from_a_arr[i] = ll_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],F,la,sa=0)
-		prob_purchase_b_from_b_arr[i] = ll_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],F,lb,sb=0)
-
-
-	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
-				'objaa':objaa_arr,'objba':objba_arr,'objbb':objbb_arr,'objab':objab_arr,
-				'marketshare_a':marketshare_a_arr,'marketshare_b':marketshare_b_arr,
-				'total_profit_a':total_profit_a_arr,'total_profit_b':total_profit_b_arr,
-				'prob_purchase_a_from_a':prob_purchase_a_from_a_arr,
-				'prob_purchase_b_from_b':prob_purchase_b_from_b_arr})
-
 ### Linear loyalty model (subsumes multiplicative and additive)
 
 def ll_constraint(p_firm,p_rival,l_firm,s_firm = 0,dist='uniform'):
@@ -231,22 +134,106 @@ def ll_get_total_profits(paa,pba,pbb,pab,F,theta,ca,cb,la,lb,sa=0,sb=0):
 					+ theta*ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa)
 	return (total_profit_a,total_profit_b)
 
-
-def ll_get_ss_prices_theory(ca,cb,la,lb):
+##tbd
+def ll_get_ss_prices_theory(ca,cb,la,lb,sa=0,sb=0):
 	return NotImplementedError
 
 def ll_get_example_in_region(region=1,dist='uniform',deltaf=0):
 	return NotImplementedError
 
-def ll_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
-	return NotImplementedError
+def ll_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la,sa=0):
+	F,f = get_xi_dist(dist)
 
-def ll_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
-	return NotImplementedError
+	pa_state_a_arr,pb_state_a_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+	'''
+	 pa_state_a_arr : array of A's prices for its strong sub-market
+	 pb_state_a_arr: array of B's prices for its weak sub-market
+	'''
+	obja_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #A's obj for its strong sub-market
+	objb_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #B's obj for its weak sub-market
+	constraint_state_a = np.zeros((pa_state_a_arr.size,pb_state_a_arr.size)) #px constraints related to A's strong sub-market
 
-def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist='uniform',theta=0.5,flag_theory=True):
-	return NotImplementedError
+	for i,paa in enumerate(pa_state_a_arr): #firm A is the row player
+		for j,pba in enumerate(pb_state_a_arr):
+			if ll_constraint(paa,pba,la,sa,dist) and firm_constraint_cost(paa,ca) and firm_constraint_cost(pba,cb):
+				constraint_state_a[i,j] = 1 
+				obja_state_a[i,j] = ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa=0)
+				objb_state_a[i,j] = ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa=0)
 
+	return pa_state_a_arr,pb_state_a_arr,obja_state_a,objb_state_a,constraint_state_a
+
+def ll_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb,sb=0):
+
+	F,f = get_xi_dist(dist)
+
+	pa_state_b_arr,pb_state_b_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+	'''
+	 pa_state_b_arr : array of A's prices for its weak sub-market
+	 pb_state_b_arr: array of B's prices for its strong sub-market
+	'''
+
+	obja_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #A's obj for its weak sub-market
+	objb_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #B's obj for its strong sub-market
+	constraint_state_b = np.zeros((pa_state_b_arr.size,pb_state_b_arr.size)) #px constraints related to B's strong sub-market
+
+
+	for i,pab in enumerate(pa_state_b_arr): #firm A is the row player
+		for j,pbb in enumerate(pb_state_b_arr):
+			if ll_constraint(pbb,pab,lb,sb,dist) and firm_constraint_cost(pbb,cb) and firm_constraint_cost(pab,ca):
+				constraint_state_b[i,j] = 1 
+				obja_state_b[i,j] = ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb=0)
+				objb_state_b[i,j] = ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb=0)
+
+	return pa_state_b_arr,pb_state_b_arr,obja_state_b,objb_state_b,constraint_state_b
+
+def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,sa=0,sb=0,dist='uniform',theta=0.5,flag_theory=True):
+	'''
+	this function iterates over ca. cb is an input.
+	'''
+	if dist != 'uniform':
+		return NotImplementedError()
+
+	F,f = get_xi_dist(dist)
+
+	paa_arr = np.zeros(ca_arr.size)
+	pba_arr = np.zeros(ca_arr.size)
+	pbb_arr = np.zeros(ca_arr.size)
+	pab_arr = np.zeros(ca_arr.size)
+	objaa_arr = np.zeros(ca_arr.size)
+	objba_arr = np.zeros(ca_arr.size)
+	objbb_arr = np.zeros(ca_arr.size)
+	objab_arr = np.zeros(ca_arr.size)
+	marketshare_a_arr = np.zeros(ca_arr.size)
+	marketshare_b_arr = np.zeros(ca_arr.size)
+	total_profit_a_arr = np.zeros(ca_arr.size)
+	total_profit_b_arr = np.zeros(ca_arr.size)
+	prob_purchase_a_from_a_arr = np.zeros(ca_arr.size)
+	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
+
+	for i,ca in enumerate(ca_arr):
+		if flag_theory is True:
+			paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ll_get_ss_prices_theory(ca,cb,la,lb,sa,sb)
+		else:
+			return NotImplementedError()
+
+		objaa_arr[i] = ll_get_individual_payoff_aa(paa_arr[i],pba_arr[i],ca,F,la,sa)
+		objba_arr[i] = ll_get_individual_payoff_ba(paa_arr[i],pba_arr[i],cb,F,la,sa)
+		objbb_arr[i] = ll_get_individual_payoff_bb(pbb_arr[i],pab_arr[i],cb,F,lb,sb)
+		objab_arr[i] = ll_get_individual_payoff_ab(pbb_arr[i],pab_arr[i],ca,F,lb,sb)
+		marketshare_a_arr[i],marketshare_b_arr[i] \
+			= ll_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],F,theta,la,lb,sa,sb)
+		total_profit_a_arr[i],total_profit_b_arr[i] \
+			= ll_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],F,theta,ca,cb,la,lb,sa,sb)
+		prob_purchase_a_from_a_arr[i] = ll_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],F,la,sa)
+		prob_purchase_b_from_b_arr[i] = ll_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],F,lb,sb)
+
+
+	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
+				'objaa':objaa_arr,'objba':objba_arr,'objbb':objbb_arr,'objab':objab_arr,
+				'marketshare_a':marketshare_a_arr,'marketshare_b':marketshare_b_arr,
+				'total_profit_a':total_profit_a_arr,'total_profit_b':total_profit_b_arr,
+				'prob_purchase_a_from_a':prob_purchase_a_from_a_arr,
+				'prob_purchase_b_from_b':prob_purchase_b_from_b_arr})
 
 
 
