@@ -44,23 +44,6 @@ def compute_single_stage_equilibrium(objaa,objba,objbb,objab,paa_arr,pba_arr,pbb
 
 ### Multiplicative loyalty model
 
-def ml_prob_cust_a_purchase_from_a(paa,pba,la,F): return 1-F((paa-pba)/la)
-def ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F): return 1-F((pbb-pab)/lb)
-def ml_get_payoff_aa(paa,ca,F,pba,la): return (paa-ca)*ml_prob_cust_a_purchase_from_a(paa,pba,la,F) #caution: theta is ignored here
-def ml_get_payoff_ba(pba,cb,F,paa,la): return (pba-cb)*(1-ml_prob_cust_a_purchase_from_a(paa,pba,la,F))
-def ml_get_payoff_bb(pbb,cb,F,pab,lb): return (pbb-cb)*ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F)
-def ml_get_payoff_ab(pab,ca,F,pbb,lb): return (pab-ca)*(1-ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F))
-
-def ml_get_market_shares(paa,pba,pbb,pab,la,lb,F,theta): 
-	new_market_share_a = theta*ml_prob_cust_a_purchase_from_a(paa,pba,la,F) + (1-theta)*(1-ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F))
-	new_market_share_b = (1-theta)*ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F) + theta*(1-ml_prob_cust_a_purchase_from_a(paa,pba,la,F))
-	return (new_market_share_a,new_market_share_b)
-
-def ml_get_total_profits(paa,pba,pbb,pab,la,lb,ca,cb,F,theta):
-	total_profit_a = theta*ml_get_payoff_aa(paa,ca,F,pba,la) + (1-theta)*ml_get_payoff_ab(pab,ca,F,pbb,lb) # see Eq 1 in paper
-	total_profit_b = (1-theta)*ml_get_payoff_bb(pbb,cb,F,pab,lb) + theta*ml_get_payoff_ba(pba,cb,F,paa,la)
-	return (total_profit_a,total_profit_b)
-
 def ml_get_ss_prices_theory(ca,cb,la,lb):
 	#From the four propositions in the paper: ml-ss
 
@@ -137,8 +120,8 @@ def ml_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
 		for j,pba in enumerate(pb_state_a_arr):
 			if ll_constraint(paa,pba,la,0,dist) and firm_constraint_cost(paa,ca) and firm_constraint_cost(pba,cb):
 				constraint_state_a[i,j] = 1 
-				obja_state_a[i,j] = ml_get_payoff_aa(paa,ca,F,pba,la)
-				objb_state_a[i,j] = ml_get_payoff_ba(pba,cb,F,paa,la)
+				obja_state_a[i,j] = ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa=0)
+				objb_state_a[i,j] = ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa=0)
 
 	return pa_state_a_arr,pb_state_a_arr,obja_state_a,objb_state_a,constraint_state_a
 
@@ -161,8 +144,8 @@ def ml_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
 		for j,pbb in enumerate(pb_state_b_arr):
 			if ll_constraint(pbb,pab,lb,0,dist) and firm_constraint_cost(pbb,cb) and firm_constraint_cost(pab,ca):
 				constraint_state_b[i,j] = 1 
-				obja_state_b[i,j] = ml_get_payoff_ab(pab,ca,F,pbb,lb)
-				objb_state_b[i,j] = ml_get_payoff_bb(pbb,cb,F,pab,lb)
+				obja_state_b[i,j] = ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb=0)
+				objb_state_b[i,j] = ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb=0)
 
 	return pa_state_b_arr,pb_state_b_arr,obja_state_b,objb_state_b,constraint_state_b
 
@@ -196,14 +179,16 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist='uniform',theta=0.5,flag_th
 		else:
 			return NotImplementedError()
 
-		objaa_arr[i] = ml_get_payoff_aa(paa_arr[i],ca,F,pba_arr[i],la)
-		objba_arr[i] = ml_get_payoff_ba(pba_arr[i],cb,F,paa_arr[i],la)
-		objbb_arr[i] = ml_get_payoff_bb(pbb_arr[i],cb,F,pab_arr[i],lb)
-		objab_arr[i] = ml_get_payoff_ab(pab_arr[i],ca,F,pbb_arr[i],lb)
-		marketshare_a_arr[i],marketshare_b_arr[i] = ml_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,F,theta)
-		total_profit_a_arr[i],total_profit_b_arr[i] = ml_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],la,lb,ca,cb,F,theta)
-		prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],la,F)
-		prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],lb,F)
+		objaa_arr[i] = ll_get_individual_payoff_aa(paa_arr[i],pba_arr[i],ca,F,la,sa=0)
+		objba_arr[i] = ll_get_individual_payoff_ba(paa_arr[i],pba_arr[i],cb,F,la,sa=0)
+		objbb_arr[i] = ll_get_individual_payoff_bb(pbb_arr[i],pab_arr[i],cb,F,lb,sb=0)
+		objab_arr[i] = ll_get_individual_payoff_ab(pbb_arr[i],pab_arr[i],ca,F,lb,sb=0)
+		marketshare_a_arr[i],marketshare_b_arr[i] \
+			= ll_get_market_shares(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],F,theta,la,lb,sa=0,sb=0)
+		total_profit_a_arr[i],total_profit_b_arr[i] \
+			= ll_get_total_profits(paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i],F,theta,ca,cb,la,lb,sa=0,sb=0)
+		prob_purchase_a_from_a_arr[i] = ll_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],F,la,sa=0)
+		prob_purchase_b_from_b_arr[i] = ll_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],F,lb,sb=0)
 
 
 	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
@@ -225,17 +210,27 @@ def ll_constraint(p_firm,p_rival,l_firm,s_firm = 0,dist='uniform'):
 		return True
 	return False
 
-def ll_prob_cust_a_purchase_from_a(paa,pba,la,F): return NotImplementedError
-def ll_prob_cust_b_purchase_from_b(pbb,pab,lb,F): return NotImplementedError
-def ll_get_payoff_aa(paa,ca,F,pba,la): return NotImplementedError
-def ll_get_payoff_ba(pba,cb,F,paa,la): return NotImplementedError
-def ll_get_payoff_bb(pbb,cb,F,pab,lb): return NotImplementedError
-def ll_get_payoff_ab(pab,ca,F,pbb,lb): return NotImplementedError
+def ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa=0): return 1-F((paa-pba-sa)/la)
+def ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb=0): return 1-F((pbb-pab-sb)/lb)
+def ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa=0): return (paa-ca)*ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa)
+def ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb=0): return (pab-ca)*(1-ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb))
+def ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa=0): return (pba-cb)*(1-ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa))
+def ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb=0): return (pbb-cb)*ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb)
 
-def ll_get_market_shares(paa,pba,pbb,pab,la,lb,F,theta):
-	return NotImplementedError
-def ll_get_total_profits(paa,pba,pbb,pab,la,lb,ca,cb,F,theta):
-	return NotImplementedError
+def ll_get_market_shares(paa,pba,pbb,pab,F,theta,la,lb,sa=0,sb=0): 
+	new_market_share_a = theta*ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa) \
+						+ (1-theta)*(1-ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb))
+	new_market_share_b = (1-theta)*ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb) \
+						+ theta*(1-ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa))
+	return (new_market_share_a,new_market_share_b)
+
+def ll_get_total_profits(paa,pba,pbb,pab,F,theta,ca,cb,la,lb,sa=0,sb=0):
+	total_profit_a = theta*ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa) \
+					+ (1-theta)*ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb)
+	total_profit_b = (1-theta)*ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb) \
+					+ theta*ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa)
+	return (total_profit_a,total_profit_b)
+
 
 def ll_get_ss_prices_theory(ca,cb,la,lb):
 	return NotImplementedError

@@ -1,12 +1,6 @@
 from utils.imports import *
 from utils.gameSolver import dsSolve
 from utils.single_stage import get_xi_dist,\
-					ml_get_payoff_aa,\
-					ml_get_payoff_ba,\
-					ml_get_payoff_bb,\
-					ml_get_payoff_ab,\
-					ml_prob_cust_a_purchase_from_a,\
-					ml_prob_cust_b_purchase_from_b,\
 					ml_get_payoff_matrices_state_a,\
 					ml_get_payoff_matrices_state_b,\
 					get_common_price_spaces,\
@@ -41,6 +35,8 @@ def compute_infinite_horizon_equilibrium(payoff_matrices,pa_arr,pb_arr,transitio
 
 ### Multiplicative loyalty model
 
+def ml_prob_cust_a_purchase_from_a(paa,pba,la,F): return 1-F((paa-pba)/la) #TODO: replace, import from ss ll
+def ml_prob_cust_b_purchase_from_b(pbb,pab,lb,F): return 1-F((pbb-pab)/lb)
 
 def ml_constraints_state_a(paa,pba,ca,cb,la):
 	if paa >= ca and pba >= cb and (0 <= paa-pba) and  (paa-pba <= la):
