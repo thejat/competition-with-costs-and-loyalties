@@ -213,7 +213,6 @@ def ml_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist='uniform',theta=0.5,flag_th
 				'prob_purchase_a_from_a':prob_purchase_a_from_a_arr,
 				'prob_purchase_b_from_b':prob_purchase_b_from_b_arr})
 
-
 ### Linear loyalty model (subsumes multiplicative and additive)
 
 def ll_constraint(p_firm,p_rival,l_firm,s_firm = 0,dist='uniform'):
@@ -225,4 +224,34 @@ def ll_constraint(p_firm,p_rival,l_firm,s_firm = 0,dist='uniform'):
 		(p_firm-p_rival <= l_firm + s_firm):
 		return True
 	return False
+
+def ll_prob_cust_a_purchase_from_a(paa,pba,la,F): return NotImplementedError
+def ll_prob_cust_b_purchase_from_b(pbb,pab,lb,F): return NotImplementedError
+def ll_get_payoff_aa(paa,ca,F,pba,la): return NotImplementedError
+def ll_get_payoff_ba(pba,cb,F,paa,la): return NotImplementedError
+def ll_get_payoff_bb(pbb,cb,F,pab,lb): return NotImplementedError
+def ll_get_payoff_ab(pab,ca,F,pbb,lb): return NotImplementedError
+
+def ll_get_market_shares(paa,pba,pbb,pab,la,lb,F,theta):
+	return NotImplementedError
+def ll_get_total_profits(paa,pba,pbb,pab,la,lb,ca,cb,F,theta):
+	return NotImplementedError
+
+def ll_get_ss_prices_theory(ca,cb,la,lb):
+	return NotImplementedError
+
+def ll_get_example_in_region(region=1,dist='uniform',deltaf=0):
+	return NotImplementedError
+
+def ll_get_payoff_matrices_state_a(ca,cb,maxpx,npts,dist,la):
+	return NotImplementedError
+
+def ll_get_payoff_matrices_state_b(ca,cb,maxpx,npts,dist,lb):
+	return NotImplementedError
+
+def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,dist='uniform',theta=0.5,flag_theory=True):
+	return NotImplementedError
+
+
+
 
