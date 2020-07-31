@@ -41,7 +41,6 @@ def compute_single_stage_equilibrium(payoff_matrices,pa_arr,pb_arr,show_progress
 
 	return {'paa':paa_c,'pba':pba_c,'pbb':pbb_c,'pab':pab_c,'objaa':objaa_c,'objba':objba_c,'objbb':objbb_c,'objab':objab_c}
 
-
 ### Multiplicative loyalty model
 
 def ml_get_example_in_region(region=1,dist='uniform',deltaf=0):
@@ -64,7 +63,7 @@ def ml_get_example_in_region(region=1,dist='uniform',deltaf=0):
 	print(instance)
 
 	if deltaf<1e-2 and dist=='uniform':
-		paa_t,pba_t,pbb_t,pab_t = ml_get_ss_prices_theory(ca,cb,la,lb)
+		paa_t,pba_t,pbb_t,pab_t = ll_get_metrics_theory(dist,ca,cb,la,lb,sa=0,sb=0)
 		result_ssa = {'paa_sst':paa_t,'pba_sst':pba_t}
 		result_ssb = {'pab_sst':pab_t,'pbb_sst':pbb_t}
 		print({**result_ssa,**result_ssb})
@@ -78,33 +77,44 @@ def ll_constraint(p_firm,p_rival,l_firm,s_firm = 0,dist='uniform'):
 	let _firm suffix represent the firm for which state a implies customer is in its strong market
 	e.g., in state where cust is in B's strong mkt and ml:  (0 <= pbb-pab) and  (pbb-pab <= lb) 
 	'''
+	if dist != 'uniform':
+		return NotImplementedError
+
 	if (s_firm <= p_firm-p_rival) and  \
 		(p_firm-p_rival <= l_firm + s_firm):
 		return True
 	return False
 
-def ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa=0): return 1-F((paa-pba-sa)/la)
-def ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb=0): return 1-F((pbb-pab-sb)/lb)
-def ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa=0): return (paa-ca)*ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa)
-def ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb=0): return (pab-ca)*(1-ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb))
-def ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa=0): return (pba-cb)*(1-ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa))
-def ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb=0): return (pbb-cb)*ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb)
+def ll_prob_cust_a_purchase_from_a(paa,pba,F,la=1,sa=0): return 1-F((paa-pba-sa)/la)
 
-def ll_get_market_shares(paa,pba,pbb,pab,F,theta,la,lb,sa=0,sb=0): 
+def ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb=1,sb=0): return 1-F((pbb-pab-sb)/lb)
+
+def ll_get_individual_payoff_aa(paa,pba,ca,F,la=1,sa=0): return (paa-ca)*ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa)
+
+def ll_get_individual_payoff_ab(pbb,pab,ca,F,lb=1,sb=0): return (pab-ca)*(1-ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb))
+
+def ll_get_individual_payoff_ba(paa,pba,cb,F,la=1,sa=0): return (pba-cb)*(1-ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa))
+
+def ll_get_individual_payoff_bb(pbb,pab,cb,F,lb=1,sb=0): return (pbb-cb)*ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb)
+
+def ll_get_market_shares(paa,pba,pbb,pab,F,theta,la=1,lb=1,sa=0,sb=0): 
 	new_market_share_a = theta*ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa) \
 						+ (1-theta)*(1-ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb))
 	new_market_share_b = (1-theta)*ll_prob_cust_b_purchase_from_b(pbb,pab,F,lb,sb) \
 						+ theta*(1-ll_prob_cust_a_purchase_from_a(paa,pba,F,la,sa))
 	return (new_market_share_a,new_market_share_b)
 
-def ll_get_total_profits(paa,pba,pbb,pab,F,theta,ca,cb,la,lb,sa=0,sb=0):
+def ll_get_total_profits(paa,pba,pbb,pab,F,theta,ca,cb,la=1,lb=1,sa=0,sb=0):
 	total_profit_a = theta*ll_get_individual_payoff_aa(paa,pba,ca,F,la,sa) \
 					+ (1-theta)*ll_get_individual_payoff_ab(pbb,pab,ca,F,lb,sb)
 	total_profit_b = (1-theta)*ll_get_individual_payoff_bb(pbb,pab,cb,F,lb,sb) \
 					+ theta*ll_get_individual_payoff_ba(paa,pba,cb,F,la,sa)
 	return (total_profit_a,total_profit_b)
 
-def ll_get_metrics_theory(ca,cb,la,lb,sa=0,sb=0): #TODO
+def ll_get_metrics_theory(dist,ca,cb,la=1,lb=1,sa=0,sb=0): #TODO
+
+	if dist != 'uniform':
+		return NotImplementedError
 
 	if sa==0 and sb==0:
 		#From the four propositions in the paper: ml-ss
@@ -139,15 +149,15 @@ def ll_get_metrics_theory(ca,cb,la,lb,sa=0,sb=0): #TODO
 	else:
 		return NotImplementedError
 
-def ll_get_example_in_region(region=1,dist='uniform',deltaf=0):
+def ll_get_example_in_region(region=1,dist='uniform',deltaf=0): #TODO
 	return NotImplementedError
 
-def ll_get_metrics_computed(dist,ca,cb,la,lb,sa=0,sb=0,maxpx=None,npts=20,show_progress=False,plot_path=False):
+def ll_get_metrics_computed(dist,ca,cb,la=1,lb=1,sa=0,sb=0,maxpx=None,npts=20,show_progress=False,plot_path=False):
 
 	if maxpx is None:
 		maxpx = ca+5
 
-	def ll_get_payoff_matrices(dist,maxpx,npts,ca,cb,la,lb,sa=0,sb=0):
+	def ll_get_payoff_matrices(dist,maxpx,npts,ca,cb,la=1,lb=1,sa=0,sb=0):
 		'''
 		There are two states in the game, but there is no transition. Thus, there are two independent games.
 		Depending on which market the customer is in (A's strong sub-market vs weak sub-market)
@@ -206,18 +216,21 @@ def ll_get_metrics_computed(dist,ca,cb,la,lb,sa=0,sb=0,maxpx=None,npts=20,show_p
 
 	#data for solver: payoff matrices
 	pa_arr,pb_arr,payoff_matrices,constraint_matrices = ll_get_payoff_matrices(dist,maxpx,npts,ca,cb,la,lb,sa,sb)
+	# pdb.set_trace()
 
 	result_c = compute_single_stage_equilibrium(payoff_matrices,pa_arr,pb_arr,show_progress=False,plot_path=False)
 
 	return result_c['paa'],result_c['pba'],result_c['pbb'],result_c['pab']
 
-def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,sa=0,sb=0,maxpx=10,npts=20,dist='uniform',theta=0.5,flag_theory=True):
+def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la=1,lb=1,sa=0,sb=0,maxpx=10,npts=20,dist='uniform',theta=0.5,flag_theory=True):
 	'''
 	this function iterates over ca. cb is an input.
 	'''
 	if dist != 'uniform':
 		return NotImplementedError()
-		
+
+	print('ll_get_metric_arrs_vs_camcb start: ',datetime.datetime.now())
+
 	F,f = get_xi_dist(dist)
 	paa_arr = np.zeros(ca_arr.size)
 	pba_arr = np.zeros(ca_arr.size)
@@ -235,9 +248,10 @@ def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,sa=0,sb=0,maxpx=10,npts=20,dist=
 	prob_purchase_b_from_b_arr = np.zeros(ca_arr.size)
 
 	for i,ca in enumerate(ca_arr):
+		print('i,ca,time: ',i,np.round(ca,3),datetime.datetime.now())
+
 		if flag_theory is True:
-			paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ll_get_metrics_theory(ca,cb,la,lb,sa,sb)
-			# paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ll_get_ss_prices_theory(ca,cb,la,lb,sa,sb)
+			paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ll_get_metrics_theory(dist,ca,cb,la,lb,sa,sb)
 		else:
 			paa_arr[i],pba_arr[i],pbb_arr[i],pab_arr[i] = ll_get_metrics_computed(dist,ca,cb,la,lb,sa,sb,maxpx,npts,show_progress=False,plot_path=False)
 
@@ -252,6 +266,7 @@ def ll_get_metric_arrs_vs_camcb(ca_arr,cb,la,lb,sa=0,sb=0,maxpx=10,npts=20,dist=
 		prob_purchase_a_from_a_arr[i] = ll_prob_cust_a_purchase_from_a(paa_arr[i],pba_arr[i],F,la,sa)
 		prob_purchase_b_from_b_arr[i] = ll_prob_cust_b_purchase_from_b(pbb_arr[i],pab_arr[i],F,lb,sb)
 
+	print('ll_get_metric_arrs_vs_camcb end: ',datetime.datetime.now())
 
 	return pd.DataFrame({'paa':paa_arr,'pba':pba_arr,'pbb':pbb_arr,'pab':pab_arr,
 				'objaa':objaa_arr,'objba':objba_arr,'objbb':objbb_arr,'objab':objab_arr,

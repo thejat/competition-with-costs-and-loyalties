@@ -7,6 +7,7 @@ from scipy.optimize import fsolve, minimize
 #debug
 from IPython.core.debugger import set_trace
 import datetime, time
+import pdb
 
 #Pandas, fileIO
 import os, glob
