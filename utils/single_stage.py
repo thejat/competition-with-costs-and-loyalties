@@ -61,6 +61,31 @@ def ml_get_example_in_region(region=1,dist='uniform'):
 
 	return ca,cb,la,lb,sa,sb
 
+### Additive loyalty model
+
+def al_get_example_in_region(region=1,dist='uniform'):
+	if dist != 'uniform':
+		return NotImplementedError()
+
+	#From the four propositions in the paper: ml-ss
+	if region==1: 	# Region I:  ca-cb < sa-1, ca-cb > 1-sb
+		ca,cb,la,lb,sa,sb    = 2,0,1,1,3.5,.5
+	elif region==2: # Region II: sa-1 < ca-cb < sa+2, ca-cb > 1-sb
+		ca,cb,la,lb,sa,sb    = 2,0,1,1,1,.5
+	elif region==3: # Region III:  ca-cb > sa+2, ca-cb > 1-sb
+		ca,cb,la,lb,sa,sb    = 3,0,1,1,.5,.5
+	elif region==4: # Region IV:  ca-cb < sa-1, ca-cb < 1-sb
+		ca,cb,la,lb,sa,sb    = .5,0,1,1,1.8,.1
+	elif region==5: # Region V:  sa-1 < ca-cb < sa+2, ca-cb < 1-sb
+		ca,cb,la,lb,sa,sb    = .5,0,1,1,1,.1
+	elif region==6: # Region VI: ca-cb > sa+2, ca-cb < 1-sb
+		print('INFEASIBLE assuming sa>=0 and sb >=0')
+		return NotImplementedError()	
+	else:
+		return NotImplementedError()
+
+	return ca,cb,la,lb,sa,sb
+
 ### Linear loyalty model (subsumes multiplicative and additive)
 
 def ll_constraint(p_firm,p_rival,l_firm=1,s_firm = 0,dist='uniform'):
@@ -136,7 +161,31 @@ def ll_get_metrics_theory(dist,ca,cb,la=1,lb=1,sa=0,sb=0): #TODO
 		temp = [paa_t,pba_t,pbb_t,pab_t] #TODO: Change to dict
 		return (np.round(x,3) for x in temp)
 	elif la==1 and lb ==1: #TODO: the conditions seem brittle, for instance in the ML case la=lb=1 is also possible
-		return NotImplementedError
+		# #From the four propositions in the paper: ml-ss
+		# if (lb <= ca-cb) and (ca-cb < 2*la): #Region I
+		# 	paa_t = 0.33*(2*ca+cb+2*la) #suffix '_t' means theoretical/analytical
+		# 	pba_t = 0.33*(2*cb+ca+la)
+		# 	pbb_t = ca
+		# 	pab_t = ca
+		# elif ca-cb > min(2*la,lb): # Region II
+		# 	paa_t = ca
+		# 	pba_t = ca-la
+		# 	pbb_t = ca
+		# 	pab_t = ca
+		# elif ca-cb < min(2*la,lb): # Region III
+		# 	paa_t = 0.33*(2*ca+cb+2*la)
+		# 	pba_t = 0.33*(2*cb+ca+la)
+		# 	pbb_t = 0.33*(2*cb+ca+2*lb)
+		# 	pab_t = 0.33*(2*ca+cb+lb)
+		# elif (2*la < ca-cb) and (ca-cb < lb): # Region IV
+		# 	paa_t = ca
+		# 	pba_t = ca-la
+		# 	pbb_t = 0.33*(2*cb+ca+2*lb)
+		# 	pab_t = 0.33*(2*ca+cb+lb)
+		# else:
+		# 	print('region not defined')
+		# 	paa_t,pba_t,pbb_t,pab_t = [0]*4
+
 	else:
 		return NotImplementedError
 
