@@ -158,36 +158,35 @@ def ll_get_metrics_theory(dist,ca,cb,la=1,lb=1,sa=0,sb=0): #TODO
 			print('region not defined')
 			paa_t,pba_t,pbb_t,pab_t = [0]*4
 
-		temp = [paa_t,pba_t,pbb_t,pab_t] #TODO: Change to dict
-		return (np.round(x,3) for x in temp)
 	elif la==1 and lb ==1: #TODO: the conditions seem brittle, for instance in the ML case la=lb=1 is also possible
-		# #From the four propositions in the paper: ml-ss
-		# if (lb <= ca-cb) and (ca-cb < 2*la): #Region I
-		# 	paa_t = 0.33*(2*ca+cb+2*la) #suffix '_t' means theoretical/analytical
-		# 	pba_t = 0.33*(2*cb+ca+la)
-		# 	pbb_t = ca
-		# 	pab_t = ca
-		# elif ca-cb > min(2*la,lb): # Region II
-		# 	paa_t = ca
-		# 	pba_t = ca-la
-		# 	pbb_t = ca
-		# 	pab_t = ca
-		# elif ca-cb < min(2*la,lb): # Region III
-		# 	paa_t = 0.33*(2*ca+cb+2*la)
-		# 	pba_t = 0.33*(2*cb+ca+la)
-		# 	pbb_t = 0.33*(2*cb+ca+2*lb)
-		# 	pab_t = 0.33*(2*ca+cb+lb)
-		# elif (2*la < ca-cb) and (ca-cb < lb): # Region IV
-		# 	paa_t = ca
-		# 	pba_t = ca-la
-		# 	pbb_t = 0.33*(2*cb+ca+2*lb)
-		# 	pab_t = 0.33*(2*ca+cb+lb)
-		# else:
-		# 	print('region not defined')
-		# 	paa_t,pba_t,pbb_t,pab_t = [0]*4
 
+		if (ca-cb >= 1 - sb): #Region I, II and III
+			pbb_t = ca+sb
+			pab_t = ca
+		elif (ca-cb < 1-sb): #Region IV and V
+			pbb_t = (2*cb+ca+sb+2)/3
+			pab_t = (cb+2*ca-sb+1)/3			
+		else:
+			print('region not defined')
+			pbb_t,pab_t = [0]*2
+
+		if (ca-cb < sa-1): #Region I and IV
+			paa_t = cb+sa
+			pba_t = cb
+		elif (sa-1 <= ca-cb) and (ca-cb <= sa+2): # Region II and V
+			paa_t = (2*ca+cb+sa+2)/3
+			pba_t = (ca+2*cb-sa+1)/3
+		elif (ca-cb > sa+2): # Region III (Region VI is not feasible)
+			paa_t = ca
+			pba_t = ca-sa-1
+		else:
+			print('region not defined')
+			paa_t,pba_t = [0]*2
 	else:
 		return NotImplementedError
+
+	temp = [paa_t,pba_t,pbb_t,pab_t] #TODO: Change to dict
+	return (np.round(x,3) for x in temp)
 
 def ll_get_example_in_region(region=1,dist='uniform',deltaf=0): #TODO
 	return NotImplementedError
