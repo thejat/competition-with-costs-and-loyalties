@@ -77,7 +77,7 @@ def al_get_example_in_region(region=1,dist='uniform'):
 	elif region==4: # Region IV:  ca-cb < sa-1, ca-cb < 1-sb
 		ca,cb,la,lb,sa,sb    = .5,0,1,1,1.8,.1
 	elif region==5: # Region V:  sa-1 < ca-cb < sa+2, ca-cb < 1-sb
-		ca,cb,la,lb,sa,sb    = .5,0,1,1,1,.1
+		ca,cb,la,lb,sa,sb    = 1,.6,1,1,1.1,.5
 	elif region==6: # Region VI: ca-cb > sa+2, ca-cb < 1-sb
 		print('INFEASIBLE assuming sa>=0 and sb >=0')
 		return NotImplementedError()	
