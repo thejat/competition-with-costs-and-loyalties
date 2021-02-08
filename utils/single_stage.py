@@ -160,16 +160,6 @@ def ll_get_metrics_theory(dist,ca,cb,la=1,lb=1,sa=0,sb=0): #TODO
 
 	elif la==1 and lb ==1: #TODO: the conditions seem brittle, for instance in the ML case la=lb=1 is also possible
 
-		if (ca-cb >= 1 - sb): #Region I, II and III
-			pbb_t = ca+sb
-			pab_t = ca
-		elif (ca-cb < 1-sb): #Region IV and V
-			pbb_t = (2*cb+ca+sb+2)/3
-			pab_t = (cb+2*ca-sb+1)/3			
-		else:
-			print('region not defined')
-			pbb_t,pab_t = [0]*2
-
 		if (ca-cb < sa-1): #Region I and IV
 			paa_t = cb+sa
 			pba_t = cb
@@ -182,6 +172,17 @@ def ll_get_metrics_theory(dist,ca,cb,la=1,lb=1,sa=0,sb=0): #TODO
 		else:
 			print('region not defined')
 			paa_t,pba_t = [0]*2
+
+		if (ca-cb >= 1 - sb): #Region I, II and III
+			pbb_t = ca+sb
+			pab_t = ca
+		elif (ca-cb < 1-sb): #Region IV and V
+			pbb_t = (2*cb+ca+sb+2)/3
+			pab_t = (cb+2*ca-sb+1)/3			
+		else:
+			print('region not defined')
+			pbb_t,pab_t = [0]*2
+
 	else:
 		return NotImplementedError
 
@@ -360,9 +361,11 @@ def ll_get_payoff_matrices_for_exhaustive(dist,npts,c1,c2,p1_t,p2_t,l,s,market='
 	if market=='A-strong-sub-market':
 		temp_func1 = ll_get_individual_payoff_aa
 		temp_func2 = ll_get_individual_payoff_ba
-	else:
+	elif market=='B-strong-sub-market':
 		temp_func1 = ll_get_individual_payoff_bb
 		temp_func2 = ll_get_individual_payoff_ab
+	else:
+		return NotImplementedError
 
 	for i,p1 in enumerate(p1_arr):
 		for j,p2 in enumerate(p2_arr):
