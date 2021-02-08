@@ -96,9 +96,9 @@ def al_get_example_in_region(region=1, dist='uniform'):
 
 
 def ll_constraint(p_firm, p_rival, l_firm=1, s_firm=0, dist='uniform'):
-    ''' 
+    '''
     let _firm suffix represent the firm for which state a implies customer is in its strong market
-    e.g., in state where cust is in B's strong mkt and ml:  (0 <= pbb-pab) and  (pbb-pab <= lb) 
+    e.g., in state where cust is in B's strong mkt and ml:  (0 <= pbb-pab) and  (pbb-pab <= lb)
     '''
     if dist != 'uniform':
         return NotImplementedError
@@ -361,6 +361,25 @@ def ll_get_metric_arrs_vs_camcb(ca_arr, cb, la=1, lb=1, sa=0, sb=0, maxpx=10, np
 
 
 def ll_ss_is_equlibrium_exhaustive(paa_arr, pba_arr, paa_c, pba_c, obja, objb, F, ca, cb, la, sa=0, debug=False):
+	"""checks if the given candidate prices form a Nash equilibrium. Needs the candidate prices to be in the price arrays.
+
+	Args:
+		paa_arr ([type]): [description]
+		pba_arr ([type]): [description]
+		paa_c ([type]): [description]
+		pba_c ([type]): [description]
+		obja ([type]): [description]
+		objb ([type]): [description]
+		F ([type]): [description]
+		ca ([type]): [description]
+		cb (function): [description]
+		la ([type]): [description]
+		sa (int, optional): [description]. Defaults to 0.
+		debug (bool, optional): [description]. Defaults to False.
+
+	Returns:
+		[type]: [description]
+	"""
     assert paa_c in paa_arr
     assert pba_c in pba_arr
 
@@ -393,8 +412,25 @@ def ll_ss_is_equlibrium_exhaustive(paa_arr, pba_arr, paa_c, pba_c, obja, objb, F
 
 # Compute the A and B payoff matrices for exhaustive experimentation
 def ll_get_payoff_matrices_for_exhaustive(dist, npts, c1, c2, p1_t, p2_t, l, s, market='A-strong-sub-market'):
+	"""Tries to include theoretical prices as part of the price arrays if they are given. They are currently required arguments.
+
+	Args:
+		dist ([type]): [description]
+		npts ([type]): [description]
+		c1 ([type]): [description]
+		c2 ([type]): [description]
+		p1_t ([type]): [description]
+		p2_t ([type]): [description]
+		l ([type]): [description]
+		s ([type]): [description]
+		market (str, optional): [description]. Defaults to 'A-strong-sub-market'.
+
+	Returns:
+		[type]: [description]
+	"""
 
     maxpx = c1+5
+	# inserting p1_theory and p2_theory prices into the arrays if they are available
     if p1_t > c1:
         p1_arr = np.concatenate(
             (np.linspace(c1, p1_t, npts, endpoint=False), np.linspace(p1_t, maxpx, npts)))
@@ -444,37 +480,3 @@ def ll_get_objective_vals_at(dist, p1_t, p2_t, c1, c2, l, s, market='A-strong-su
         and ll_constraint(p1_t, p2_t, l, s)
 
     return obj1_t, obj2_t, flag_constraint
-
-
-# TODO: separate model, compute and visualization functions
-def get_plot_constraint_using_plotly(p1_arr, p2_arr, constraintmat, xname='pba', yname='paa'):
-    # Constraint space
-    fig = go.Figure(data=go.Contour(z=constraintmat, x=p1_arr, y=p2_arr))
-    fig.update_layout(xaxis_title=xname, yaxis_title=yname, font=dict(size=18))
-    fig.show()
-
-
-def get_plot_payoffs_using_plotly(obj1, obj2, p1_arr, p2_arr):
-    # A and B's payoffs
-    fig = make_subplots(rows=1, cols=2)
-    fig.add_trace(
-        go.Contour(z=obj1, x=p2_arr, y=p1_arr),
-        row=1, col=1)
-    fig.add_trace(
-        go.Contour(z=obj2, x=p2_arr, y=p1_arr),
-        row=1, col=2)
-    fig.update_layout(height=600, width=800,
-                      title_text="A and B's payoffs \(top view\)")
-    fig.show()
-
-
-def get_plot_3d_payoffs_using_plotly():
-    return NotImplementedError
-    # 3D plot of obja
-    # fig = go.Figure(data=[go.Surface(z=obja, x=pba_arr, y=paa_arr)])
-    # fig.update_layout(autosize=False, width=500, height=500, scene = dict(xaxis = dict(title='pba'),yaxis = dict(title='paa')))
-    # fig.show()
-    # 3D plot of objb
-    # fig = go.Figure(data=[go.Surface(z=objb, x=pba_arr, y=paa_arr)])
-    # fig.update_layout(autosize=False, width=500, height=500, margin=dict(l=65, r=50, b=65, t=90), scene = dict(xaxis = dict(title='pba'),yaxis = dict(title='paa')))
-    # fig.show()
