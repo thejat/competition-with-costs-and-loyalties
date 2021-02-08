@@ -23,11 +23,6 @@ def get_xi_dist(dist='normal'):
 	else:
 		return NotImplementedError # (norm.cdf,norm.pdf) 
 
-def get_common_price_spaces(ca,cb,maxpx,npts):
-	pa_common_arr = np.linspace(ca,maxpx,npts) #A's price for its strong sub-market
-	pb_common_arr = np.linspace(cb,maxpx,npts) #B's price for its weak sub-market
-	return pa_common_arr,pb_common_arr
-
 def compute_single_stage_equilibrium(payoff_matrices,pa_arr,pb_arr,show_progress=False,plot_path=False):
 	#TODO: make payoff_matrices_w_info dict as the input
 	def get_computed_equilibrium(payoffs,p1_arr,p2_arr):
@@ -205,7 +200,8 @@ def ll_get_metrics_computed(dist,ca,cb,la=1,lb=1,sa=0,sb=0,maxpx=None,npts=20,sh
 
 		F,f = get_xi_dist(dist)
 
-		pa_arr,pb_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+		pa_arr = np.linspace(ca,maxpx,npts)
+		pb_arr = np.linspace(cb,maxpx,npts)
 
 		'''
 		Generic price arrays pa_arr and pb_arr represent the following:
@@ -411,7 +407,7 @@ def get_plot_payoffs_using_plotly(obj1,obj2,p1_arr,p2_arr):
 	fig.update_layout(height=600, width=800, title_text="A and B's payoffs \(top view\)")
 	fig.show()
 
-def get_3d_plot_payoffs_using_plotly():
+def get_plot_3d_payoffs_using_plotly():
 	return NotImplementedError
 	# 3D plot of obja
 	# fig = go.Figure(data=[go.Surface(z=obja, x=pba_arr, y=paa_arr)])

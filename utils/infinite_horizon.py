@@ -1,7 +1,6 @@
 from utils.imports import *
 from utils.gameSolver import dsSolve
 from utils.single_stage import get_xi_dist,\
-					get_common_price_spaces,\
 					ll_constraint,\
 					firm_constraint_cost,\
 					firm_constraint_across                    
@@ -123,7 +122,8 @@ def ml_get_metrics_computed(ca,cb,la,lb,F,f,deltaf,dist='uniform',maxpx=10,npts=
 
 	def ml_get_transition_prob_matrices(ca,cb,maxpx,npts,F,f,la,lb):
 
-		pa_arr,pb_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+		pa_arr = np.linspace(ca,maxpx,npts)
+		pb_arr = np.linspace(cb,maxpx,npts)
 
 		transition_prob_matrices = []
 		#state:customer is in set alpha
@@ -327,7 +327,8 @@ def ll_get_metrics_computed(ca,cb,la,lb,sa,sb,F,f,deltaf,maxpx=None,npts=20,show
 
 	def ml_get_payoff_matrices_state_a(ca,cb,maxpx,npts,F,f,la):
 
-		pa_state_a_arr,pb_state_a_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+		pa_state_a_arr = np.linspace(ca,maxpx,npts)
+		pb_state_a_arr = np.linspace(cb,maxpx,npts)
 		'''
 		 pa_state_a_arr : array of A's prices for its strong sub-market
 		 pb_state_a_arr: array of B's prices for its weak sub-market
@@ -349,7 +350,8 @@ def ll_get_metrics_computed(ca,cb,la,lb,sa,sb,F,f,deltaf,maxpx=None,npts=20,show
 
 	def ml_get_payoff_matrices_state_b(ca,cb,maxpx,npts,F,f,lb):
 
-		pa_state_b_arr,pb_state_b_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+		pa_state_b_arr = np.linspace(ca,maxpx,npts)
+		pb_state_b_arr = np.linspace(cb,maxpx,npts)
 		'''
 		 pa_state_b_arr : array of A's prices for its weak sub-market
 		 pb_state_b_arr: array of B's prices for its strong sub-market
@@ -371,7 +373,8 @@ def ll_get_metrics_computed(ca,cb,la,lb,sa,sb,F,f,deltaf,maxpx=None,npts=20,show
 
 	def ml_get_transition_prob_matrices(ca,cb,maxpx,npts,F,f,la,lb):
 
-		pa_arr,pb_arr = get_common_price_spaces(ca,cb,maxpx,npts)
+		pa_arr = np.linspace(ca,maxpx,npts)
+		pb_arr = np.linspace(cb,maxpx,npts)
 
 		transition_prob_matrices = []
 		#state:customer is in set alpha
