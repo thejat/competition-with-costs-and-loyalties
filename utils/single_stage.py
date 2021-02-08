@@ -213,8 +213,73 @@ def ll_get_metrics_theory(dist, ca, cb, la=1, lb=1, sa=0, sb=0):  # TODO
     return (np.round(x, 3) for x in temp)
 
 
-def ll_get_example_in_region(region=1, dist='uniform', deltaf=0):  # TODO
-    return NotImplementedError
+def ll_get_payoff_matrices(dist, maxpx, npts, ca, cb, la=1, lb=1, sa=0, sb=0):
+    '''
+    There are two states in the game, but there is no transition. Thus, there are two independent games.
+    Depending on which market the customer is in (A's strong sub-market vs weak sub-market)
+    '''
+
+    F, _ = get_xi_dist(dist)
+
+    pa_arr = np.linspace(ca, maxpx, npts)
+    pb_arr = np.linspace(cb, maxpx, npts)
+
+    '''
+	Generic price arrays pa_arr and pb_arr represent the following:
+		pa_state_a_arr : array of A's prices for its strong sub-market
+		pb_state_a_arr: array of B's prices for its weak sub-market
+
+		pa_state_b_arr : array of A's prices for its weak sub-market
+		pb_state_b_arr: array of B's prices for its strong sub-market
+	'''
+
+    # A's obj for its strong sub-market
+    obja_state_a = np.zeros((pa_arr.size, pb_arr.size))
+    # B's obj for its weak sub-market
+    objb_state_a = np.zeros((pa_arr.size, pb_arr.size))
+
+    # A's obj for its weak sub-market
+    obja_state_b = np.zeros((pa_arr.size, pb_arr.size))
+    # B's obj for its strong sub-market
+    objb_state_b = np.zeros((pa_arr.size, pb_arr.size))
+
+    # px constraints related to A's strong sub-market
+    constraint_state_a = np.zeros((pa_arr.size, pb_arr.size))
+    # px constraints related to B's strong sub-market
+    constraint_state_b = np.zeros((pa_arr.size, pb_arr.size))
+
+    for i, paa in enumerate(pa_arr):  # firm A is the row player
+        for j, pba in enumerate(pb_arr):
+
+            # Computing payoffs in the first game
+            if ll_constraint(paa, pba, la, sa, dist) and firm_constraint_cost(paa, ca) and firm_constraint_cost(pba, cb):
+                constraint_state_a[i, j] = 1
+                obja_state_a[i, j] = ll_get_individual_payoff_aa(
+                    paa, pba, ca, F, la, sa)
+                objb_state_a[i, j] = ll_get_individual_payoff_ba(
+                    paa, pba, cb, F, la, sa)
+
+            # Computing payoffs for the second game
+            # no meaning here, these are temporary variables.
+            pbb, pab = pba, paa
+            if ll_constraint(pbb, pab, lb, sb, dist) and firm_constraint_cost(pbb, cb) and firm_constraint_cost(pab, ca):
+                constraint_state_b[i, j] = 1
+                obja_state_b[i, j] = ll_get_individual_payoff_ab(
+                    pbb, pab, ca, F, lb, sb)
+                objb_state_b[i, j] = ll_get_individual_payoff_bb(
+                    pbb, pab, cb, F, lb, sb)
+
+    payoff_matrices = [  # s = \alpha
+        np.array([obja_state_a, objb_state_a]),
+        # s = \beta
+        np.array([obja_state_b, objb_state_b])]
+
+    constraint_matrices = [  # s = \alpha
+        constraint_state_a,
+        # s = \beta
+        constraint_state_b]
+
+    return pa_arr, pb_arr, payoff_matrices, constraint_matrices
 
 
 def ll_get_metrics_computed(dist, ca, cb, la=1, lb=1, sa=0, sb=0, maxpx=None, npts=20, show_progress=False, plot_path=False):
@@ -222,76 +287,8 @@ def ll_get_metrics_computed(dist, ca, cb, la=1, lb=1, sa=0, sb=0, maxpx=None, np
     if maxpx is None:
         maxpx = ca+5
 
-    def ll_get_payoff_matrices(dist, maxpx, npts, ca, cb, la=1, lb=1, sa=0, sb=0):
-        '''
-        There are two states in the game, but there is no transition. Thus, there are two independent games.
-        Depending on which market the customer is in (A's strong sub-market vs weak sub-market)
-        '''
-
-        F, f = get_xi_dist(dist)
-
-        pa_arr = np.linspace(ca, maxpx, npts)
-        pb_arr = np.linspace(cb, maxpx, npts)
-
-        '''
-		Generic price arrays pa_arr and pb_arr represent the following:
-		 pa_state_a_arr : array of A's prices for its strong sub-market
-		 pb_state_a_arr: array of B's prices for its weak sub-market
-
-		 pa_state_b_arr : array of A's prices for its weak sub-market
-		 pb_state_b_arr: array of B's prices for its strong sub-market
-		'''
-
-        # A's obj for its strong sub-market
-        obja_state_a = np.zeros((pa_arr.size, pb_arr.size))
-        # B's obj for its weak sub-market
-        objb_state_a = np.zeros((pa_arr.size, pb_arr.size))
-
-        # A's obj for its weak sub-market
-        obja_state_b = np.zeros((pa_arr.size, pb_arr.size))
-        # B's obj for its strong sub-market
-        objb_state_b = np.zeros((pa_arr.size, pb_arr.size))
-
-        # px constraints related to A's strong sub-market
-        constraint_state_a = np.zeros((pa_arr.size, pb_arr.size))
-        # px constraints related to B's strong sub-market
-        constraint_state_b = np.zeros((pa_arr.size, pb_arr.size))
-
-        for i, paa in enumerate(pa_arr):  # firm A is the row player
-            for j, pba in enumerate(pb_arr):
-
-                # Computing payoffs in the first game
-                if ll_constraint(paa, pba, la, sa, dist) and firm_constraint_cost(paa, ca) and firm_constraint_cost(pba, cb):
-                    constraint_state_a[i, j] = 1
-                    obja_state_a[i, j] = ll_get_individual_payoff_aa(
-                        paa, pba, ca, F, la, sa)
-                    objb_state_a[i, j] = ll_get_individual_payoff_ba(
-                        paa, pba, cb, F, la, sa)
-
-                # Computing payoffs for the second game
-                # no meaning here, these are temporary variables.
-                pbb, pab = pba, paa
-                if ll_constraint(pbb, pab, lb, sb, dist) and firm_constraint_cost(pbb, cb) and firm_constraint_cost(pab, ca):
-                    constraint_state_b[i, j] = 1
-                    obja_state_b[i, j] = ll_get_individual_payoff_ab(
-                        pbb, pab, ca, F, lb, sb)
-                    objb_state_b[i, j] = ll_get_individual_payoff_bb(
-                        pbb, pab, cb, F, lb, sb)
-
-        payoff_matrices = [  # s = \alpha
-            np.array([obja_state_a, objb_state_a]),
-            # s = \beta
-            np.array([obja_state_b, objb_state_b])]
-
-        constraint_matrices = [  # s = \alpha
-            constraint_state_a,
-            # s = \beta
-            constraint_state_b]
-
-        return pa_arr, pb_arr, payoff_matrices, constraint_matrices
-
     # data for solver: payoff matrices
-    pa_arr, pb_arr, payoff_matrices, constraint_matrices = ll_get_payoff_matrices(
+    pa_arr, pb_arr, payoff_matrices, _ = ll_get_payoff_matrices(
         dist, maxpx, npts, ca, cb, la, lb, sa, sb)
     # pdb.set_trace()
 
@@ -310,7 +307,7 @@ def ll_get_metric_arrs_vs_camcb(ca_arr, cb, la=1, lb=1, sa=0, sb=0, maxpx=10, np
 
     print('ll_get_metric_arrs_vs_camcb start: ', datetime.datetime.now())
 
-    F, f = get_xi_dist(dist)
+    F, _ = get_xi_dist(dist)
     paa_arr = np.zeros(ca_arr.size)
     pba_arr = np.zeros(ca_arr.size)
     pbb_arr = np.zeros(ca_arr.size)
