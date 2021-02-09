@@ -46,7 +46,6 @@ def compute_infinite_horizon_equilibrium(payoff_matrices, pa_arr, pb_arr, transi
 
 def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
-
     # agnostic to the loyalty model (next three functions)
 
     def vaopt_diff_ll(paa, pab, xia, xib, ca, F, deltaf):
@@ -54,7 +53,6 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
     def vbopt_diff_ll(pbb, pba, xia, xib, cb, F, deltaf):
         return ((1-F(xib))*(pbb-cb) - F(xia)*(pba-cb))/(1-deltaf+deltaf*(F(xia)+F(xib)))
-
 
     def get_vopts_ll(paa, pab, pbb, pba, xia, xib, da, db, ca, cb, F):
         """
@@ -121,12 +119,11 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
         residual2 = pba - (cb + F(xia)*la/f(xia) - deltaf*vbopt)
         return (residual1, residual2)
 
-
-    #specific to additive loyalty model (next three functions)
+    # specific to additive loyalty model (next three functions)
 
     def xi_equations_al(candidates, ca, cb, sa, sb, F, f, deltaf):
-        gammaa = (ca- cb -sa)
-        gammab = (cb- ca -sb)
+        gammaa = (ca - cb - sa)
+        gammab = (cb - ca - sb)
         delbydel = (1-deltaf)/deltaf
 
         xia, xib = candidates
@@ -168,11 +165,10 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
         residual2 = pba - (cb + F(xia)/f(xia) - deltaf*vbopt)
         return (residual1, residual2)
 
-
     if sa == 0 and sb == 0:  # ml
-        
+
         xia, xib = fsolve(xi_equations_ml,  (.5, .5),
-                          (ca, cb, la, lb, F, f, deltaf)) # hardcoded initial point for fsolve
+                          (ca, cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
         paa, pab = fsolve(pax_equations_ml, (.5, .5), (xia, xib, ca,
                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
         pbb, pba = fsolve(pbx_equations_ml, (.5, .5), (xia, xib, ca,
@@ -182,9 +178,8 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
     elif la == 1 and lb == 1:  # al
 
-        
         xia, xib = fsolve(xi_equations_al,  (.5, .5),
-                          (ca, cb, sa, sb, F, f, deltaf)) # hardcoded initial point for fsolve
+                          (ca, cb, sa, sb, F, f, deltaf))  # hardcoded initial point for fsolve
         paa, pab = fsolve(pax_equations_al, (.5, .5), (xia, xib, ca,
                                                        cb, F, f, deltaf))  # hardcoded initial point for fsolve
         pbb, pba = fsolve(pbx_equations_al, (.5, .5), (xia, xib, ca,
