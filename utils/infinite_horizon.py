@@ -4,7 +4,9 @@ from utils.single_stage import get_xi_dist,\
     ll_constraint,\
     firm_constraint_cost,\
     firm_constraint_across,\
-    ll_get_both_payoff_matrices
+    ll_get_both_payoff_matrices,\
+    ll_prob_cust_a_purchase_from_a,\
+    ll_prob_cust_b_purchase_from_b
 
 '''
 In the below variables, first index is always firm, and second index is the strong sub-market
@@ -126,7 +128,7 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
     return paa, pab, pbb, pba, xia, xib, vaao, vabo, vbbo, vbao
 
 
-def ll_get_metrics_computed(ca, cb, F, f, deltaf, la, lb, sa, sb, dist='uniform', maxpx=10, npts=20, show_progress=False, plot_path=False):  # TODO: change to ll
+def ll_get_metrics_computed(dist, ca, cb, F, f, deltaf, la, lb, sa, sb, maxpx=10, npts=20, show_progress=False, plot_path=False):  # TODO: change to ll
 
     def ll_get_transition_prob_matrices(ca, cb, maxpx, npts, F, f, la, lb, sa, sb):
 
@@ -231,10 +233,10 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
 
         if flag_theory:
             paa_arr[i], pab_arr[i], pbb_arr[i], pba_arr[i], xia_arr[i], xib_arr[i], vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i]  \
-                = ml_get_metrics_theory(ca, cb, la, lb, F, f, deltaf, dist)
+                = ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb)
         else:
             paa_arr[i], pab_arr[i], pbb_arr[i], pba_arr[i], xia_arr[i], xib_arr[i], vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i]  \
-                = ml_get_metrics_computed(ca, cb, la, lb, F, f, deltaf, dist, maxpx, npts, show_progress, plot_path)
+                = ll_get_metrics_computed(dist, ca, cb, F, f, deltaf, la, lb, sa, sb, maxpx, npts, show_progress, plot_path)
 
         # logging
         if ll_constraint(paa_arr[i], pba_arr[i], la, sa, dist) and firm_constraint_cost(paa_arr[i], ca) and firm_constraint_cost(pba_arr[i], cb):
@@ -251,10 +253,10 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
             paa_arr[i], pba_arr[i], pbb_arr[i], pab_arr[i], F, la, lb, sa, sb)
         total_profit_a_arr[i], total_profit_b_arr[i] = ll_get_total_profits(
             vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i], marketshare_a_arr[i])
-        prob_purchase_a_from_a_arr[i] = ml_prob_cust_a_purchase_from_a(
-            paa_arr[i], pba_arr[i], la, F)
-        prob_purchase_b_from_b_arr[i] = ml_prob_cust_b_purchase_from_b(
-            pbb_arr[i], pab_arr[i], lb, F)
+        prob_purchase_a_from_a_arr[i] = ll_prob_cust_a_purchase_from_a(
+            paa_arr[i], pba_arr[i], F, la, sa)
+        prob_purchase_b_from_b_arr[i] = ll_prob_cust_b_purchase_from_b(
+            pbb_arr[i], pab_arr[i], F, lb, sb)
 
     print('ml_get_metric_arrs_vs_camcb_nodf end: ', datetime.datetime.now())
 
