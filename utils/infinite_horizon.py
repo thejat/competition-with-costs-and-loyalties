@@ -24,19 +24,21 @@ def compute_infinite_horizon_equilibrium(payoff_matrices, pa_arr, pb_arr, transi
     equilibrium = dsSolve(payoff_matrices, transition_prob_matrices,
                           discount_factors, show_progress, plot_path)
 
-    #logging
+    # logging
     eq_indices_firm_A = np.argmax(equilibrium['strategies'][0], axis=1)
     sol_values_firm_A = [pa_arr[eq_indices_firm_A[0]], pb_arr[eq_indices_firm_A[1]],
-             equilibrium['stateValues'][0][0], equilibrium['stateValues'][0][1]]
+                         equilibrium['stateValues'][0][0], equilibrium['stateValues'][0][1]]
     sol_names_firm_A = ['paa', 'pba', 'vaa', 'vba']
-    result_firm_A = {sol_names_firm_A[i]: np.round(x, 3) for i, x in enumerate(sol_values_firm_A)}
+    result_firm_A = {sol_names_firm_A[i]: np.round(
+        x, 3) for i, x in enumerate(sol_values_firm_A)}
 
     eq_indices_firm_B = np.argmax(equilibrium['strategies'][1], axis=1)
     sol_values_firm_B = [pa_arr[eq_indices_firm_B[0]], pb_arr[eq_indices_firm_B[1]],
-             equilibrium['stateValues'][1][0], equilibrium['stateValues'][1][1]]
+                         equilibrium['stateValues'][1][0], equilibrium['stateValues'][1][1]]
     sol_names_firm_B = ['pab', 'pbb', 'vab', 'vbb']
-    result_firm_B = {sol_names_firm_B[i]: np.round(x, 3) for i, x in enumerate(sol_values_firm_B)}
-    
+    result_firm_B = {sol_names_firm_B[i]: np.round(
+        x, 3) for i, x in enumerate(sol_values_firm_B)}
+
     return result_firm_A, result_firm_B
 
 
@@ -108,23 +110,23 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
         return vaao, vabo, vbbo, vbao
 
-    if sa==0 and sb==0: #ml
+    if sa == 0 and sb == 0:  # ml
         # hardcoded initial point for fsolve
         xia, xib = fsolve(xi_equations_ml,  (.5, .5),
                           (ca, cb, la, lb, F, f, deltaf))
         paa, pab = fsolve(pax_equations_ml, (.5, .5), (xia, xib, ca,
-                                                         cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
+                                                       cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
         pbb, pba = fsolve(pbx_equations_ml, (.5, .5), (xia, xib, ca,
-                                                         cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
+                                                       cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
         vaao, vabo, vbbo, vbao = get_vopts_ml(
             paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
-    elif la==1 and lb == 1: #al
+    elif la == 1 and lb == 1:  # al
         return NotImplementedError
 
     return paa, pab, pbb, pba, xia, xib, vaao, vabo, vbbo, vbao
 
 
-def ll_get_metrics_computed(ca, cb, F, f, deltaf, la, lb, sa, sb, dist='uniform', maxpx=10, npts=20, show_progress=False, plot_path=False): #TODO: change to ll
+def ll_get_metrics_computed(ca, cb, F, f, deltaf, la, lb, sa, sb, dist='uniform', maxpx=10, npts=20, show_progress=False, plot_path=False):  # TODO: change to ll
 
     def ll_get_transition_prob_matrices(ca, cb, maxpx, npts, F, f, la, lb, sa, sb):
 
@@ -136,7 +138,8 @@ def ll_get_metrics_computed(ca, cb, F, f, deltaf, la, lb, sa, sb, dist='uniform'
         transition_prob_matrix = np.zeros((len(pa_arr), len(pb_arr), 2))
         for i, pa in enumerate(pa_arr):
             for j, pb in enumerate(pb_arr):
-                transition_prob_matrix[i, j, 0] = ll_prob_cust_a_purchase_from_a(pa, pb, F, la, sa)
+                transition_prob_matrix[i, j, 0] = ll_prob_cust_a_purchase_from_a(
+                    pa, pb, F, la, sa)
                 # transitioning to set beta
                 transition_prob_matrix[i, j, 1] = 1 - \
                     transition_prob_matrix[i, j, 0]
@@ -146,7 +149,8 @@ def ll_get_metrics_computed(ca, cb, F, f, deltaf, la, lb, sa, sb, dist='uniform'
         transition_prob_matrix = np.zeros((len(pa_arr), len(pb_arr), 2))
         for i, pa in enumerate(pa_arr):
             for j, pb in enumerate(pb_arr):
-                transition_prob_matrix[i, j, 1] = ll_prob_cust_b_purchase_from_b(pb, pa, F, lb, sb)
+                transition_prob_matrix[i, j, 1] = ll_prob_cust_b_purchase_from_b(
+                    pb, pa, F, lb, sb)
                 # from beta to set alpha
                 transition_prob_matrix[i, j, 0] = 1 - \
                     transition_prob_matrix[i, j, 1]
@@ -155,32 +159,30 @@ def ll_get_metrics_computed(ca, cb, F, f, deltaf, la, lb, sa, sb, dist='uniform'
 
         return transition_prob_matrices
 
-
     # data for solver: transition probability matrices
     transition_prob_matrices = ll_get_transition_prob_matrices(
         ca, cb, maxpx, npts, F, f, la, lb, sa, sb)
 
     # data for solver: immediate payoff matrices
     pa_arr, pb_arr, payoff_matrices, _ = ll_get_both_payoff_matrices(
-            dist, maxpx, npts, ca, cb, la, lb, sa, sb)
+        dist, maxpx, npts, ca, cb, la, lb, sa, sb)
 
-
-    result1_c, result2_c = compute_infinite_horizon_equilibrium(payoff_matrices, pa_arr, pb_arr, transition_prob_matrices, deltaf, show_progress, plot_path)
+    result1_c, result2_c = compute_infinite_horizon_equilibrium(
+        payoff_matrices, pa_arr, pb_arr, transition_prob_matrices, deltaf, show_progress, plot_path)
 
     xia = (result1_c['paa'] - result1_c['pba'])/la
     xib = (result2_c['pbb'] - result2_c['pab'])/lb
 
     return result1_c['paa'], result2_c['pab'], result2_c['pbb'], result1_c['pba'], xia, xib, result1_c['vaa'], result2_c['vab'], result2_c['vbb'], result1_c['vba']
 
+
 def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, flag_theory=True, maxpx=10, npts=20, show_progress=False, plot_path=False):
     """Compute the market outcomes as a function of cost asymmetry
     """
 
-
-
     def ll_get_market_shares(paa, pba, pbb, pab, F, la, lb, sa, sb):
 
-        praa = ll_prob_cust_a_purchase_from_a(paa, pba, F, la, sa)    
+        praa = ll_prob_cust_a_purchase_from_a(paa, pba, F, la, sa)
         prbb = ll_prob_cust_b_purchase_from_b(pbb, pab, F, lb, sb)
 
         A = np.array([[praa-1, 1-prbb], [1, 1]])
@@ -190,12 +192,10 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
         new_market_share_b = thetavec[1]
         return (new_market_share_a, new_market_share_b)
 
-
     def ll_get_total_profits(vaa, vab, vbb, vba, theta):
         total_profit_a = theta*vaa + (1-theta)*vab
         total_profit_b = (1-theta)*vbb + theta*vba
         return (total_profit_a, total_profit_b)
-
 
     if dist != 'uniform':
         return NotImplementedError()
@@ -236,8 +236,7 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
             paa_arr[i], pab_arr[i], pbb_arr[i], pba_arr[i], xia_arr[i], xib_arr[i], vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i]  \
                 = ml_get_metrics_computed(ca, cb, la, lb, F, f, deltaf, dist, maxpx, npts, show_progress, plot_path)
 
-
-        #logging
+        # logging
         if ll_constraint(paa_arr[i], pba_arr[i], la, sa, dist) and firm_constraint_cost(paa_arr[i], ca) and firm_constraint_cost(pba_arr[i], cb):
             constraint_aa_ba_arr[i] = 1
         if ll_constraint(pbb_arr[i], pab_arr[i], lb, sb, dist) and firm_constraint_cost(pbb_arr[i], cb) and firm_constraint_cost(pab_arr[i], ca):
@@ -258,7 +257,6 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
             pbb_arr[i], pab_arr[i], lb, F)
 
     print('ml_get_metric_arrs_vs_camcb_nodf end: ', datetime.datetime.now())
-
 
     return pd.DataFrame({'paa': paa_arr, 'pba': pba_arr, 'pbb': pbb_arr, 'pab': pab_arr,
                          'vaa': vaao_arr, 'vba': vbao_arr, 'vbb': vbbo_arr, 'vab': vabo_arr,
