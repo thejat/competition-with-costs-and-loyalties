@@ -230,8 +230,7 @@ def ll_get_both_payoff_matrices(dist, maxpx, npts, ca, cb, la=1, lb=1, sa=0, sb=
     constraint_state_b: px constraints related to B's strong sub-market
     '''
 
-
-    def ll_get_payoff_matrices_given_state(dist, maxpx, npts, ca, cb, la, lb, sa, sb, market='A-strong-sub-market',pax_theory=None, pbx_theory=None):
+    def ll_get_payoff_matrices_given_state(dist, maxpx, npts, ca, cb, la, lb, sa, sb, market='A-strong-sub-market', pax_theory=None, pbx_theory=None):
         """Produces the immediate payoff matrices and price arrays.
         Tries to include theoretical prices as part of the price arrays if they are given. They are currently optional arguments.
 
@@ -258,40 +257,43 @@ def ll_get_both_payoff_matrices(dist, maxpx, npts, ca, cb, la=1, lb=1, sa=0, sb=
                 (np.linspace(ca, pax_theory, npts//2, endpoint=False), np.linspace(pax_theory, maxpx, npts//2)))
         else:
             pax_arr = np.linspace(ca, maxpx, npts)
-        if pbx_theory  is not None and pbx_theory > cb:
+        if pbx_theory is not None and pbx_theory > cb:
             pbx_arr = np.concatenate(
                 (np.linspace(cb, pbx_theory, npts//2, endpoint=False), np.linspace(pbx_theory, maxpx, npts//2)))
         else:
             pbx_arr = np.linspace(cb, maxpx, npts)
 
-
-        objax = np.zeros((pax_arr.size, pbx_arr.size)) #firm A is row player
+        objax = np.zeros((pax_arr.size, pbx_arr.size))  # firm A is row player
         objbx = np.zeros((pax_arr.size, pbx_arr.size))
         constraintmat = np.zeros((pax_arr.size, pbx_arr.size))
 
         F, _ = get_xi_dist(dist)
 
         if market == 'A-strong-sub-market':
-            for i, pax in enumerate(pax_arr): #firm A
-                for j, pbx in enumerate(pbx_arr): #formB
+            for i, pax in enumerate(pax_arr):  # firm A
+                for j, pbx in enumerate(pbx_arr):  # formB
                     if firm_constraint_cost(pax, ca) and firm_constraint_cost(pbx, cb) and ll_constraint(pax, pbx, la, sa):
                         constraintmat[i, j] = 1
-                        objax[i, j] = ll_get_individual_payoff_aa(pax, pbx, ca, F, la, sa) #_aa means firmA in state a/submarket alpha
-                        objbx[i, j] = ll_get_individual_payoff_ba(pax, pbx, cb, F, la, sa)
+                        # _aa means firmA in state a/submarket alpha
+                        objax[i, j] = ll_get_individual_payoff_aa(
+                            pax, pbx, ca, F, la, sa)
+                        objbx[i, j] = ll_get_individual_payoff_ba(
+                            pax, pbx, cb, F, la, sa)
 
         elif market == 'B-strong-sub-market':
-            for i, pax in enumerate(pax_arr): #firm A
-                for j, pbx in enumerate(pbx_arr): #firm B
+            for i, pax in enumerate(pax_arr):  # firm A
+                for j, pbx in enumerate(pbx_arr):  # firm B
                     if firm_constraint_cost(pax, ca) and firm_constraint_cost(pbx, cb) and ll_constraint(pbx, pax, lb, sb):
                         constraintmat[i, j] = 1
-                        objax[i, j] = ll_get_individual_payoff_ab(pbx, pax, ca, F, lb, sb)
-                        objbx[i, j] = ll_get_individual_payoff_bb(pbx, pax, cb, F, lb, sb)
+                        objax[i, j] = ll_get_individual_payoff_ab(
+                            pbx, pax, ca, F, lb, sb)
+                        objbx[i, j] = ll_get_individual_payoff_bb(
+                            pbx, pax, cb, F, lb, sb)
 
         else:
             return NotImplementedError
 
         return pax_arr, pbx_arr, objax, objbx, constraintmat
-
 
     # Computing payoffs in the first game/state/alpha/A strong submarket
     pa_arr, pb_arr, obja_state_a, objb_state_a, constraint_state_a = ll_get_payoff_matrices_given_state(
@@ -364,7 +366,7 @@ def ll_get_metric_arrs_vs_camcb(ca_arr, cb, la=1, lb=1, sa=0, sb=0, maxpx=10, np
             paa_arr[i], pba_arr[i], pbb_arr[i], pab_arr[i] = ll_get_metrics_computed(
                 dist, ca, cb, la, lb, sa, sb, maxpx, npts, show_progress=False, plot_path=False)
 
-        #logging
+        # logging
         objaa_arr[i] = ll_get_individual_payoff_aa(
             paa_arr[i], pba_arr[i], ca, F, la, sa)
         objba_arr[i] = ll_get_individual_payoff_ba(
