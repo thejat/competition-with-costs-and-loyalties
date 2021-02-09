@@ -46,6 +46,37 @@ def compute_infinite_horizon_equilibrium(payoff_matrices, pa_arr, pb_arr, transi
 
 def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
+
+    # agnostic to the loyalty model (next three functions)
+
+    def vaopt_diff_ll(paa, pab, xia, xib, ca, F, deltaf):
+        return ((1-F(xia))*(paa-ca) - F(xib)*(pab-ca))/(1-deltaf+deltaf*(F(xia)+F(xib)))
+
+    def vbopt_diff_ll(pbb, pba, xia, xib, cb, F, deltaf):
+        return ((1-F(xib))*(pbb-cb) - F(xia)*(pba-cb))/(1-deltaf+deltaf*(F(xia)+F(xib)))
+
+
+    def get_vopts_ll(paa, pab, pbb, pba, xia, xib, da, db, ca, cb, F):
+        """
+        Eq above 15
+        """
+        #vaao, vabo
+        mat1 = np.array([[1-da*(1-F(xia)), -da*F(xia)],
+                         [-da*F(xib), 1-da*(1-F(xib))]])
+        rhs1 = np.array([(1-F(xia))*(paa-ca), F(xib)*(pab-ca)])
+        sol1 = np.linalg.inv(mat1).dot(rhs1)
+        vaao, vabo = sol1[0], sol1[1]
+
+        mat2 = np.array([[1-db*(1-F(xib)), -db*F(xib)],
+                         [-db*F(xia), 1-db*(1-F(xia))]])
+        rhs2 = np.array([(1-F(xib))*(pbb-cb), F(xia)*(pba-cb)])
+        sol2 = np.linalg.inv(mat2).dot(rhs2)
+        vbbo, vbao = sol2[0], sol2[1]
+
+        return vaao, vabo, vbbo, vbao
+
+    # specific to multiplicative loyalty model (next three functions)
+
     def xi_equations_ml(candidates, ca, cb, la, lb, F, f, deltaf):
         gammaa = (ca-cb)/la
         gammab = (cb-ca)/lb
@@ -66,63 +97,102 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
         return (residual1, residual2)
 
-    def xi_equations_al(candidates, ca, cb, sa, sb, F, f, deltaf):
-        return NotImplementedError
-
     def pax_equations_ml(candidates, xia, xib, ca, cb, la, lb, F, f, deltaf):
-
-        def vaopt_diff_ml(paa, pab, xia, xib, ca, F, deltaf):
-            return ((1-F(xia))*(paa-ca) - F(xib)*(pab-ca))/(1-deltaf+deltaf*(F(xia)+F(xib)))
-
+        """
+        Eq 9, 10
+        """
         paa, pab = candidates
         if xia < 0 or xia > 1 or xib < 0 or xib > 1:
             return (math.inf, math.inf)
-        vaopt = vaopt_diff_ml(paa, pab, xia, xib, ca, F, deltaf)
+        vaopt = vaopt_diff_ll(paa, pab, xia, xib, ca, F, deltaf)
         residual1 = paa - (ca + (1-F(xia))*la/f(xia) - deltaf*vaopt)
         residual2 = pab - (ca + F(xib)*lb/f(xib) - deltaf*vaopt)
         return (residual1, residual2)
 
     def pbx_equations_ml(candidates, xia, xib, ca, cb, la, lb, F, f, deltaf):
-
-        def vbopt_diff_ml(pbb, pba, xia, xib, cb, F, deltaf):
-            return ((1-F(xib))*(pbb-cb) - F(xia)*(pba-cb))/(1-deltaf+deltaf*(F(xia)+F(xib)))
-
+        """
+        Eq 11, 12
+        """
         pbb, pba = candidates
         if xia < 0 or xia > 1 or xib < 0 or xib > 1:
             return (math.inf, math.inf)
-        vbopt = vbopt_diff_ml(pbb, pba, xia, xib, cb, F, deltaf)
+        vbopt = vbopt_diff_ll(pbb, pba, xia, xib, cb, F, deltaf)
         residual1 = pbb - (cb + (1-F(xib))*lb/f(xib) - deltaf*vbopt)
         residual2 = pba - (cb + F(xia)*la/f(xia) - deltaf*vbopt)
         return (residual1, residual2)
 
-    def get_vopts_ml(paa, pab, pbb, pba, xia, xib, da, db, ca, cb, F):
 
-        #vaao, vabo
-        mat1 = np.array([[1-da*(1-F(xia)), -da*F(xia)],
-                         [-da*F(xib), 1-da*(1-F(xib))]])
-        rhs1 = np.array([(1-F(xia))*(paa-ca), F(xib)*(pab-ca)])
-        sol1 = np.linalg.inv(mat1).dot(rhs1)
-        vaao, vabo = sol1[0], sol1[1]
+    #specific to additive loyalty model (next three functions)
 
-        mat2 = np.array([[1-db*(1-F(xib)), -db*F(xib)],
-                         [-db*F(xia), 1-db*(1-F(xia))]])
-        rhs2 = np.array([(1-F(xib))*(pbb-cb), F(xia)*(pba-cb)])
-        sol2 = np.linalg.inv(mat2).dot(rhs2)
-        vbbo, vbao = sol2[0], sol2[1]
+    def xi_equations_al(candidates, ca, cb, sa, sb, F, f, deltaf):
+        gammaa = (ca- cb -sa)
+        gammab = (cb- ca -sb)
+        delbydel = (1-deltaf)/deltaf
 
-        return vaao, vabo, vbbo, vbao
+        xia, xib = candidates
+        if xia < 0 or xia > 1 or xib < 0 or xib > 1:  # hardcoded for cdf between 0 and 1: TODO
+            return (math.inf, math.inf)
+
+        residual1 = (xia-gammaa)*(delbydel+F(xib)+1) \
+            + ((2*F(xia)-1)/f(xia))*(delbydel + F(xib) + F(xia)) \
+            + (F(xia)/f(xia)) \
+            - ((1-F(xib))/f(xib) - F(xib)*(xib - gammab))
+        residual2 = (xib-gammab)*(delbydel+F(xia)+1) \
+            + ((2*F(xib)-1)/f(xib))*(delbydel + F(xib) + F(xia)) \
+            + (F(xib)/f(xib)) \
+            - ((1-F(xia))/f(xia) - F(xia)*(xia - gammaa))
+
+        return (residual1, residual2)
+
+    def pax_equations_al(candidates, xia, xib, ca, cb, F, f, deltaf):
+        """
+        Eq 9, 10
+        """
+        paa, pab = candidates
+        if xia < 0 or xia > 1 or xib < 0 or xib > 1:
+            return (math.inf, math.inf)
+        vaopt = vaopt_diff_ll(paa, pab, xia, xib, ca, F, deltaf)
+        residual1 = paa - (ca + (1-F(xia))/f(xia) - deltaf*vaopt)
+        residual2 = pab - (ca + F(xib)/f(xib) - deltaf*vaopt)
+        return (residual1, residual2)
+
+    def pbx_equations_al(candidates, xia, xib, ca, cb, F, f, deltaf):
+        """
+        Eq 11, 12
+        """
+        pbb, pba = candidates
+        if xia < 0 or xia > 1 or xib < 0 or xib > 1:
+            return (math.inf, math.inf)
+        vbopt = vbopt_diff_ll(pbb, pba, xia, xib, cb, F, deltaf)
+        residual1 = pbb - (cb + (1-F(xib))/f(xib) - deltaf*vbopt)
+        residual2 = pba - (cb + F(xia)/f(xia) - deltaf*vbopt)
+        return (residual1, residual2)
+
 
     if sa == 0 and sb == 0:  # ml
-        # hardcoded initial point for fsolve
+        
         xia, xib = fsolve(xi_equations_ml,  (.5, .5),
-                          (ca, cb, la, lb, F, f, deltaf))
+                          (ca, cb, la, lb, F, f, deltaf)) # hardcoded initial point for fsolve
         paa, pab = fsolve(pax_equations_ml, (.5, .5), (xia, xib, ca,
                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
         pbb, pba = fsolve(pbx_equations_ml, (.5, .5), (xia, xib, ca,
                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
-        vaao, vabo, vbbo, vbao = get_vopts_ml(
+        vaao, vabo, vbbo, vbao = get_vopts_ll(
             paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
+
     elif la == 1 and lb == 1:  # al
+
+        
+        xia, xib = fsolve(xi_equations_al,  (.5, .5),
+                          (ca, cb, sa, sb, F, f, deltaf)) # hardcoded initial point for fsolve
+        paa, pab = fsolve(pax_equations_al, (.5, .5), (xia, xib, ca,
+                                                       cb, F, f, deltaf))  # hardcoded initial point for fsolve
+        pbb, pba = fsolve(pbx_equations_al, (.5, .5), (xia, xib, ca,
+                                                       cb, F, f, deltaf))  # hardcoded initial point for fsolve
+        vaao, vabo, vbbo, vbao = get_vopts_ll(
+            paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
+
+    else:
         return NotImplementedError
 
     return paa, pab, pbb, pba, xia, xib, vaao, vabo, vbbo, vbao
@@ -178,7 +248,7 @@ def ll_get_metrics_computed(dist, ca, cb, F, f, deltaf, la, lb, sa, sb, maxpx=10
     return result1_c['paa'], result2_c['pab'], result2_c['pbb'], result1_c['pba'], xia, xib, result1_c['vaa'], result2_c['vab'], result2_c['vbb'], result1_c['vba']
 
 
-def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, flag_theory=True, maxpx=10, npts=20, show_progress=False, plot_path=False):
+def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la=1, lb=1, sa=0, sb=0, flag_theory=True, maxpx=10, npts=20, show_progress=False, plot_path=False):
     """Compute the market outcomes as a function of cost asymmetry
     """
 
@@ -202,7 +272,7 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
     if dist != 'uniform':
         return NotImplementedError()
 
-    print('ml_get_metric_arrs_vs_camcb_nodf start: ', datetime.datetime.now())
+    print('ll_get_metric_arrs_vs_camcb start: ', datetime.datetime.now())
 
     F, f = get_xi_dist(dist)
 
@@ -258,7 +328,7 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la, lb, sa=0, sb=0, fl
         prob_purchase_b_from_b_arr[i] = ll_prob_cust_b_purchase_from_b(
             pbb_arr[i], pab_arr[i], F, lb, sb)
 
-    print('ml_get_metric_arrs_vs_camcb_nodf end: ', datetime.datetime.now())
+    print('ll_get_metric_arrs_vs_camcb end: ', datetime.datetime.now())
 
     return pd.DataFrame({'paa': paa_arr, 'pba': pba_arr, 'pbb': pbb_arr, 'pab': pab_arr,
                          'vaa': vaao_arr, 'vba': vbao_arr, 'vbb': vbbo_arr, 'vab': vabo_arr,
