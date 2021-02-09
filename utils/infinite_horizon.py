@@ -169,9 +169,9 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
         xia, xib = fsolve(xi_equations_ml,  (.5, .5),
                           (ca, cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
-        paa, pab = fsolve(pax_equations_ml, (.5, .5), (xia, xib, ca,
+        paa, pab = fsolve(pax_equations_ml, (ca, ca), (xia, xib, ca,
                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
-        pbb, pba = fsolve(pbx_equations_ml, (.5, .5), (xia, xib, ca,
+        pbb, pba = fsolve(pbx_equations_ml, (cb, cb), (xia, xib, ca,
                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
         vaao, vabo, vbbo, vbao = get_vopts_ll(
             paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
@@ -180,9 +180,9 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
 
         xia, xib = fsolve(xi_equations_al,  (.5, .5),
                           (ca, cb, sa, sb, F, f, deltaf))  # hardcoded initial point for fsolve
-        paa, pab = fsolve(pax_equations_al, (.5, .5), (xia, xib, ca,
+        paa, pab = fsolve(pax_equations_al, (ca, ca), (xia, xib, ca,
                                                        cb, F, f, deltaf))  # hardcoded initial point for fsolve
-        pbb, pba = fsolve(pbx_equations_al, (.5, .5), (xia, xib, ca,
+        pbb, pba = fsolve(pbx_equations_al, (cb, cb), (xia, xib, ca,
                                                        cb, F, f, deltaf))  # hardcoded initial point for fsolve
         vaao, vabo, vbbo, vbao = get_vopts_ll(
             paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
@@ -252,6 +252,10 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la=1, lb=1, sa=0, sb=0
         praa = ll_prob_cust_a_purchase_from_a(paa, pba, F, la, sa)
         prbb = ll_prob_cust_b_purchase_from_b(pbb, pab, F, lb, sb)
 
+        if abs(praa-1) < 1e-5 and abs(prbb-1) < 1e-5:
+            # this happens when paa = pab and pba==pbb which leads to ll_prob_cust_a_purchase_from_a == 1 and ll_prob_cust_b_purchase_from_b ==1
+            return .5, .5
+
         A = np.array([[praa-1, 1-prbb], [1, 1]])
         b = np.array([0, 1])
         thetavec = np.linalg.solve(A, b)
@@ -300,8 +304,12 @@ def ll_get_metric_arrs_vs_camcb(dist, deltaf, ca_arr, cb, la=1, lb=1, sa=0, sb=0
             paa_arr[i], pab_arr[i], pbb_arr[i], pba_arr[i], xia_arr[i], xib_arr[i], vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i]  \
                 = ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb)
         else:
-            paa_arr[i], pab_arr[i], pbb_arr[i], pba_arr[i], xia_arr[i], xib_arr[i], vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i]  \
-                = ll_get_metrics_computed(dist, ca, cb, F, f, deltaf, la, lb, sa, sb, maxpx, npts, show_progress, plot_path)
+            try:
+                paa_arr[i], pab_arr[i], pbb_arr[i], pba_arr[i], xia_arr[i], xib_arr[i], vaao_arr[i], vabo_arr[i], vbbo_arr[i], vbao_arr[i]  \
+                    = ll_get_metrics_computed(dist, ca, cb, F, f, deltaf, la, lb, sa, sb, maxpx, npts, show_progress, plot_path)
+            except:
+                print('ll_get_metrics_computed FAILED',
+                      ca, cb, F, f, deltaf, la, lb, sa, sb)
 
         # logging
         if ll_constraint(paa_arr[i], pba_arr[i], la, sa, dist) and firm_constraint_cost(paa_arr[i], ca) and firm_constraint_cost(pba_arr[i], cb):
