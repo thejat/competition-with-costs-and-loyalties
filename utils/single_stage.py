@@ -6,7 +6,7 @@ In the variables below, first index is always firm, and second index is the stro
 For instance, in paa_arr, first 'a' represents firm A's pricing, second 'a' represents A's strong sub-market 'alpha'
 '''
 
-# General loyalty model
+################## General loyalty model #########################################
 
 
 def firm_constraint_across(p_strong_market, p_weak_market):
@@ -22,7 +22,6 @@ def firm_constraint_cost(px, cost):
 
 
 def get_xi_dist(dist='normal'):
-
     if dist == 'uniform':
         return (uniform.cdf, uniform.pdf)
     else:
@@ -45,7 +44,7 @@ def compute_single_stage_equilibrium(payoff_matrices, pa_arr, pb_arr, show_progr
 
     return {'paa': paa_c, 'pba': pba_c, 'pbb': pbb_c, 'pab': pab_c, 'objaa': objaa_c, 'objba': objba_c, 'objbb': objbb_c, 'objab': objab_c}
 
-# Multiplicative loyalty model
+################### Multiplicative loyalty model ##################################
 
 
 def ml_get_example_in_region(region=1, dist='uniform'):
@@ -53,7 +52,7 @@ def ml_get_example_in_region(region=1, dist='uniform'):
         return NotImplementedError()
 
     # From the four propositions in the paper: ml-ss
-    if region == 1: 	# Region I:  lb < ca-cb < 2la
+    if region == 1:     # Region I:  lb < ca-cb < 2la
         ca, cb, la, lb, sa, sb = 2, 0, 2, 1, 0, 0
     elif region == 2:  # Region II: ca-cb > min(2la,lb)
         ca, cb, la, lb, sa, sb = 5, 0, 2, 1, 0, 0
@@ -66,7 +65,7 @@ def ml_get_example_in_region(region=1, dist='uniform'):
 
     return ca, cb, la, lb, sa, sb
 
-# Additive loyalty model
+################### Additive loyalty model ########################################
 
 
 def al_get_example_in_region(region=1, dist='uniform'):
@@ -74,7 +73,7 @@ def al_get_example_in_region(region=1, dist='uniform'):
         return NotImplementedError()
 
     # From the four propositions in the paper: ml-ss
-    if region == 1: 	# Region I:  ca-cb < sa-1, ca-cb > 1-sb
+    if region == 1:     # Region I:  ca-cb < sa-1, ca-cb > 1-sb
         ca, cb, la, lb, sa, sb = 2, 0, 1, 1, 3.5, .5
     elif region == 2:  # Region II: sa-1 < ca-cb < sa+2, ca-cb > 1-sb
         ca, cb, la, lb, sa, sb = 2, 0, 1, 1, 1, .5
@@ -92,7 +91,7 @@ def al_get_example_in_region(region=1, dist='uniform'):
 
     return ca, cb, la, lb, sa, sb
 
-# Linear loyalty model (subsumes multiplicative and additive)
+################### Linear loyalty model (subsumes multiplicative and additive) ####
 
 
 def ll_constraint(p_firm, p_rival, l_firm=1, s_firm=0, dist='uniform'):
@@ -121,12 +120,12 @@ def ll_get_individual_payoff_aa(paa, pba, ca, F, la=1, sa=0): return (
     paa-ca)*ll_prob_cust_a_purchase_from_a(paa, pba, F, la, sa)
 
 
-def ll_get_individual_payoff_ab(pbb, pab, ca, F, lb=1, sb=0): return (
-    pab-ca)*(1-ll_prob_cust_b_purchase_from_b(pbb, pab, F, lb, sb))
-
-
 def ll_get_individual_payoff_ba(paa, pba, cb, F, la=1, sa=0): return (
     pba-cb)*(1-ll_prob_cust_a_purchase_from_a(paa, pba, F, la, sa))
+
+
+def ll_get_individual_payoff_ab(pbb, pab, ca, F, lb=1, sb=0): return (
+    pab-ca)*(1-ll_prob_cust_b_purchase_from_b(pbb, pab, F, lb, sb))
 
 
 def ll_get_individual_payoff_bb(pbb, pab, cb, F, lb=1, sb=0): return (
@@ -213,61 +212,94 @@ def ll_get_metrics_theory(dist, ca, cb, la=1, lb=1, sa=0, sb=0):  # TODO
     return (np.round(x, 3) for x in temp)
 
 
-def ll_get_payoff_matrices(dist, maxpx, npts, ca, cb, la=1, lb=1, sa=0, sb=0):
+def ll_get_both_payoff_matrices(dist, maxpx, npts, ca, cb, la=1, lb=1, sa=0, sb=0, pax_theory=None, pbx_theory=None):
     '''
-    There are two states in the game, but there is no transition. Thus, there are two independent games.
-    Depending on which market the customer is in (A's strong sub-market vs weak sub-market)
+    There are two states in the game, but there is no transition in the single stage setting. Thus, there are two independent games.
+
+    We generate both payoff matrices, letting the calling function decide which market the customer is in and which matrices are useful (A's strong sub-market vs weak sub-market).
+
+    Firm A is always the row player.
+
+    obja_state_a: A's obj for its strong sub-market
+    objb_state_a: B's obj for its weak sub-market
+
+    obja_state_b: A's obj for its weak sub-market
+    objb_state_b: B's obj for its strong sub-market
+
+    constraint_state_a: px constraints related to A's strong sub-market
+    constraint_state_b: px constraints related to B's strong sub-market
     '''
 
-    F, _ = get_xi_dist(dist)
 
-    pa_arr = np.linspace(ca, maxpx, npts)
-    pb_arr = np.linspace(cb, maxpx, npts)
+    def ll_get_payoff_matrices_given_state(dist, maxpx, npts, ca, cb, la, lb, sa, sb, market='A-strong-sub-market',pax_theory=None, pbx_theory=None):
+        """Produces the immediate payoff matrices and price arrays.
+        Tries to include theoretical prices as part of the price arrays if they are given. They are currently optional arguments.
 
-    '''
-	Generic price arrays pa_arr and pb_arr represent the following:
-		pa_state_a_arr : array of A's prices for its strong sub-market
-		pb_state_a_arr: array of B's prices for its weak sub-market
+        Args:
+            dist ([type]): distribution of the xi RV
+            npts ([type]): number of disretization points in the price array
+            ca ([type]): cost for firm A
+            cb ([type]): cost for firm B
+            pax_theory ([type]): theoretical price for firm A if available will be included in the array
+            pbx_theory ([type]):  theoretical price for firm B if available will be included in the array
+            la ([type]): the ml model parameter for firm A
+            sa ([type]): the al model parameter for firm A
+            lb ([type]): the ml model parameter for firm B
+            sb ([type]): the al model parameter for firm B
+            market (str, optional): [description]. Defaults to 'A-strong-sub-market'.
 
-		pa_state_b_arr : array of A's prices for its weak sub-market
-		pb_state_b_arr: array of B's prices for its strong sub-market
-	'''
+        Returns:
+            [type]: [description]
+        """
 
-    # A's obj for its strong sub-market
-    obja_state_a = np.zeros((pa_arr.size, pb_arr.size))
-    # B's obj for its weak sub-market
-    objb_state_a = np.zeros((pa_arr.size, pb_arr.size))
+        # inserting pax_theory and pbx_theory prices into the arrays if they are available
+        if pax_theory is not None and pax_theory > ca:
+            pax_arr = np.concatenate(
+                (np.linspace(ca, pax_theory, npts//2, endpoint=False), np.linspace(pax_theory, maxpx, npts//2)))
+        else:
+            pax_arr = np.linspace(ca, maxpx, npts)
+        if pbx_theory  is not None and pbx_theory > cb:
+            pbx_arr = np.concatenate(
+                (np.linspace(cb, pbx_theory, npts//2, endpoint=False), np.linspace(pbx_theory, maxpx, npts//2)))
+        else:
+            pbx_arr = np.linspace(cb, maxpx, npts)
 
-    # A's obj for its weak sub-market
-    obja_state_b = np.zeros((pa_arr.size, pb_arr.size))
-    # B's obj for its strong sub-market
-    objb_state_b = np.zeros((pa_arr.size, pb_arr.size))
 
-    # px constraints related to A's strong sub-market
-    constraint_state_a = np.zeros((pa_arr.size, pb_arr.size))
-    # px constraints related to B's strong sub-market
-    constraint_state_b = np.zeros((pa_arr.size, pb_arr.size))
+        objax = np.zeros((pax_arr.size, pbx_arr.size)) #firm A is row player
+        objbx = np.zeros((pax_arr.size, pbx_arr.size))
+        constraintmat = np.zeros((pax_arr.size, pbx_arr.size))
 
-    for i, paa in enumerate(pa_arr):  # firm A is the row player
-        for j, pba in enumerate(pb_arr):
+        F, _ = get_xi_dist(dist)
 
-            # Computing payoffs in the first game
-            if ll_constraint(paa, pba, la, sa, dist) and firm_constraint_cost(paa, ca) and firm_constraint_cost(pba, cb):
-                constraint_state_a[i, j] = 1
-                obja_state_a[i, j] = ll_get_individual_payoff_aa(
-                    paa, pba, ca, F, la, sa)
-                objb_state_a[i, j] = ll_get_individual_payoff_ba(
-                    paa, pba, cb, F, la, sa)
+        if market == 'A-strong-sub-market':
+            for i, pax in enumerate(pax_arr): #firm A
+                for j, pbx in enumerate(pbx_arr): #formB
+                    if firm_constraint_cost(pax, ca) and firm_constraint_cost(pbx, cb) and ll_constraint(pax, pbx, la, sa):
+                        constraintmat[i, j] = 1
+                        objax[i, j] = ll_get_individual_payoff_aa(pax, pbx, ca, F, la, sa) #_aa means firmA in state a/submarket alpha
+                        objbx[i, j] = ll_get_individual_payoff_ba(pax, pbx, cb, F, la, sa)
 
-            # Computing payoffs for the second game
-            # no meaning here, these are temporary variables.
-            pbb, pab = pba, paa
-            if ll_constraint(pbb, pab, lb, sb, dist) and firm_constraint_cost(pbb, cb) and firm_constraint_cost(pab, ca):
-                constraint_state_b[i, j] = 1
-                obja_state_b[i, j] = ll_get_individual_payoff_ab(
-                    pbb, pab, ca, F, lb, sb)
-                objb_state_b[i, j] = ll_get_individual_payoff_bb(
-                    pbb, pab, cb, F, lb, sb)
+        elif market == 'B-strong-sub-market':
+            for i, pax in enumerate(pax_arr): #firm A
+                for j, pbx in enumerate(pbx_arr): #firm B
+                    if firm_constraint_cost(pax, ca) and firm_constraint_cost(pbx, cb) and ll_constraint(pbx, pax, lb, sb):
+                        constraintmat[i, j] = 1
+                        objax[i, j] = ll_get_individual_payoff_ab(pbx, pax, ca, F, lb, sb)
+                        objbx[i, j] = ll_get_individual_payoff_bb(pbx, pax, cb, F, lb, sb)
+
+        else:
+            return NotImplementedError
+
+        return pax_arr, pbx_arr, objax, objbx, constraintmat
+
+
+    # Computing payoffs in the first game/state/alpha/A strong submarket
+    pa_arr, pb_arr, obja_state_a, objb_state_a, constraint_state_a = ll_get_payoff_matrices_given_state(
+        dist, maxpx, npts, ca, cb, la, lb, sa, sb, market='A-strong-sub-market')
+
+    # Computing payoffs for the second game/state/beta/B strong submarket
+    _, _, obja_state_b, objb_state_b, constraint_state_b = ll_get_payoff_matrices_given_state(
+        dist, maxpx, npts, ca, cb, la, lb, sa, sb, market='B-strong-sub-market')
 
     payoff_matrices = [  # s = \alpha
         np.array([obja_state_a, objb_state_a]),
@@ -287,10 +319,9 @@ def ll_get_metrics_computed(dist, ca, cb, la=1, lb=1, sa=0, sb=0, maxpx=None, np
     if maxpx is None:
         maxpx = ca+5
 
-    # data for solver: payoff matrices
-    pa_arr, pb_arr, payoff_matrices, _ = ll_get_payoff_matrices(
+    # data for solver: payoff matrices for both games (one for each sub-market alpha and beta)
+    pa_arr, pb_arr, payoff_matrices, _ = ll_get_both_payoff_matrices(
         dist, maxpx, npts, ca, cb, la, lb, sa, sb)
-    # pdb.set_trace()
 
     result_c = compute_single_stage_equilibrium(
         payoff_matrices, pa_arr, pb_arr, show_progress=False, plot_path=False)
@@ -333,6 +364,7 @@ def ll_get_metric_arrs_vs_camcb(ca_arr, cb, la=1, lb=1, sa=0, sb=0, maxpx=10, np
             paa_arr[i], pba_arr[i], pbb_arr[i], pab_arr[i] = ll_get_metrics_computed(
                 dist, ca, cb, la, lb, sa, sb, maxpx, npts, show_progress=False, plot_path=False)
 
+        #logging
         objaa_arr[i] = ll_get_individual_payoff_aa(
             paa_arr[i], pba_arr[i], ca, F, la, sa)
         objba_arr[i] = ll_get_individual_payoff_ba(
@@ -361,25 +393,25 @@ def ll_get_metric_arrs_vs_camcb(ca_arr, cb, la=1, lb=1, sa=0, sb=0, maxpx=10, np
 
 
 def ll_ss_is_equlibrium_exhaustive(paa_arr, pba_arr, paa_c, pba_c, obja, objb, F, ca, cb, la, sa=0, debug=False):
-	"""checks if the given candidate prices form a Nash equilibrium. Needs the candidate prices to be in the price arrays.
+    """checks if the given candidate prices form a Nash equilibrium. Needs the candidate prices to be in the price arrays.
 
-	Args:
-		paa_arr ([type]): [description]
-		pba_arr ([type]): [description]
-		paa_c ([type]): [description]
-		pba_c ([type]): [description]
-		obja ([type]): [description]
-		objb ([type]): [description]
-		F ([type]): [description]
-		ca ([type]): [description]
-		cb (function): [description]
-		la ([type]): [description]
-		sa (int, optional): [description]. Defaults to 0.
-		debug (bool, optional): [description]. Defaults to False.
+    Args:
+        paa_arr ([type]): [description]
+        pba_arr ([type]): [description]
+        paa_c ([type]): [description]
+        pba_c ([type]): [description]
+        obja ([type]): [description]
+        objb ([type]): [description]
+        F ([type]): [description]
+        ca ([type]): [description]
+        cb (function): [description]
+        la ([type]): [description]
+        sa (int, optional): [description]. Defaults to 0.
+        debug (bool, optional): [description]. Defaults to False.
 
-	Returns:
-		[type]: [description]
-	"""
+    Returns:
+        [type]: [description]
+    """
     assert paa_c in paa_arr
     assert pba_c in pba_arr
 
@@ -408,75 +440,3 @@ def ll_ss_is_equlibrium_exhaustive(paa_arr, pba_arr, paa_c, pba_c, obja, objb, F
         return True
     else:
         return False
-
-
-# Compute the A and B payoff matrices for exhaustive experimentation
-def ll_get_payoff_matrices_for_exhaustive(dist, npts, c1, c2, p1_t, p2_t, l, s, market='A-strong-sub-market'):
-	"""Tries to include theoretical prices as part of the price arrays if they are given. They are currently required arguments.
-
-	Args:
-		dist ([type]): [description]
-		npts ([type]): [description]
-		c1 ([type]): [description]
-		c2 ([type]): [description]
-		p1_t ([type]): [description]
-		p2_t ([type]): [description]
-		l ([type]): [description]
-		s ([type]): [description]
-		market (str, optional): [description]. Defaults to 'A-strong-sub-market'.
-
-	Returns:
-		[type]: [description]
-	"""
-
-    maxpx = c1+5
-	# inserting p1_theory and p2_theory prices into the arrays if they are available
-    if p1_t > c1:
-        p1_arr = np.concatenate(
-            (np.linspace(c1, p1_t, npts, endpoint=False), np.linspace(p1_t, maxpx, npts)))
-    else:
-        p1_arr = np.linspace(c1, maxpx, npts)
-    if p2_t > c2:
-        p2_arr = np.concatenate(
-            (np.linspace(c2, p2_t, npts, endpoint=False), np.linspace(p2_t, maxpx, npts)))
-    else:
-        p2_arr = np.linspace(c2, maxpx, npts)
-    obj1 = np.zeros((p1_arr.size, p2_arr.size))
-    obj2 = np.zeros((p1_arr.size, p2_arr.size))
-    constraintmat = np.zeros((p1_arr.size, p2_arr.size))
-
-    F, f = get_xi_dist(dist)
-    if market == 'A-strong-sub-market':
-        temp_func1 = ll_get_individual_payoff_aa
-        temp_func2 = ll_get_individual_payoff_ba
-    elif market == 'B-strong-sub-market':
-        temp_func1 = ll_get_individual_payoff_bb
-        temp_func2 = ll_get_individual_payoff_ab
-    else:
-        return NotImplementedError
-
-    for i, p1 in enumerate(p1_arr):
-        for j, p2 in enumerate(p2_arr):
-            if firm_constraint_cost(p1, c1) and firm_constraint_cost(p2, c2) and ll_constraint(p1, p2, l, s):
-                constraintmat[i, j] = 1
-                obj1[i, j] = temp_func1(p1, p2, c1, F, l, s)
-                obj2[i, j] = temp_func2(p1, p2, c2, F, l, s)
-    return p1_arr, p2_arr, obj1, obj2, constraintmat
-
-
-def ll_get_objective_vals_at(dist, p1_t, p2_t, c1, c2, l, s, market='A-strong-sub-market'):
-    F, f = get_xi_dist(dist)
-    if market == 'A-strong-sub-market':
-        temp_func1 = ll_get_individual_payoff_aa
-        temp_func2 = ll_get_individual_payoff_ba
-    else:
-        temp_func1 = ll_get_individual_payoff_bb
-        temp_func2 = ll_get_individual_payoff_ab
-
-    obj1_t = temp_func1(p1_t, p2_t, c1, F, l, s)
-    obj2_t = temp_func2(p1_t, p2_t, c2, F, l, s)
-
-    flag_constraint = firm_constraint_cost(p1_t, c1) and firm_constraint_cost(p2_t, c2) \
-        and ll_constraint(p1_t, p2_t, l, s)
-
-    return obj1_t, obj2_t, flag_constraint
