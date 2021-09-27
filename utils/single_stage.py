@@ -205,8 +205,30 @@ def ll_get_metrics_theory(dist, ca, cb, la=1, lb=1, sa=0, sb=0):  # TODO
             print('region not defined')
             pbb_t, pab_t = [0]*2
 
-    else:
-        return NotImplementedError
+    else: 
+
+        if (ca-cb < sa-la):  # Region I and IV
+            paa_t = cb+sa
+            pba_t = cb
+        elif (sa-la <= ca-cb) and (ca-cb <= sa+2*la):  # Region II and V
+            paa_t = (2*ca+cb+2*la+sa)/3
+            pba_t = (ca+2*cb-sa+la)/3
+        elif ((ca-cb > sa+2*la) and (ca-cb > lb-sb)) or ((ca-cb > sa+2*la) and (lb-sb >= sa+2*la)):  # Region III, VI
+            paa_t = ca
+            pba_t = ca-sa-la
+        else:
+            print('region not defined')
+            paa_t, pba_t = [0]*2
+
+        if (ca-cb >= lb - sb):  # Region I, II and III
+            pbb_t = ca+sb
+            pab_t = ca
+        elif ((ca-cb < lb-sb) and (ca-cb > sa+2*la)) or ((ca-cb < lb-sb) and (lb-sb >= sa+2*la)):  # Region IV and V, VI
+            pbb_t = (2*cb+ca+sb+2*lb)/3
+            pab_t = (cb+2*ca-sb+lb)/3
+        else:
+            print('region not defined')
+            pbb_t, pab_t = [0]*2      
 
     temp = [paa_t, pba_t, pbb_t, pab_t]  # TODO: Change to dict
     return (np.round(x, 3) for x in temp)

@@ -165,6 +165,50 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
         residual2 = pba - (cb + F(xia)/f(xia) - deltaf*vbopt)
         return (residual1, residual2)
 
+    def xi_equations_ll(candidates, ca, cb, la, lb, F, f, deltaf):
+        gammaa = (ca - cb - sa)/la
+        gammab = (cb - ca - sb) /lb
+        delbydel = (1-deltaf)/deltaf
+
+        xia, xib = candidates
+        if xia < 0 or xia > 1 or xib < 0 or xib > 1:  # hardcoded for cdf between 0 and 1: TODO
+            return (math.inf, math.inf)
+
+        residual1 = (xia-gammaa)*(delbydel+F(xib)+1) \
+            + ((2*F(xia)-1)/f(xia))*(delbydel + F(xib) + F(xia)) \
+            + (F(xia)/f(xia)) \
+            - (((1-F(xib))*lb)/(la*f(xib)) - F(xib)*(gammaa + (xib*lb/la) + (sb/la) + (sa/la)))
+        residual2 = (xib-gammab)*(delbydel+F(xia)+1) \
+            + ((2*F(xib)-1)/f(xib))*(delbydel + F(xib) + F(xia)) \
+            + (F(xib)/f(xib)) \
+            - (((1-F(xia))*la)/(lb*f(xia)) - F(xia)*(gammab + (xia*la/lb) + (sa/lb) + (sb/lb)))
+
+        return (residual1, residual2)
+
+    def pax_equations_ll(candidates, xia, xib, ca, cb, la, lb, F, f, deltaf):
+        """
+        Eq 9, 10
+        """
+        paa, pab = candidates
+        if xia < 0 or xia > 1 or xib < 0 or xib > 1:
+            return (math.inf, math.inf)
+        vaopt = vaopt_diff_ll(paa, pab, xia, xib, ca, F, deltaf)
+        residual1 = paa - (ca + (1-F(xia))*la/f(xia) - deltaf*vaopt)    
+        residual2 = pab - (ca + F(xib)*lb/f(xib) - deltaf*vaopt)
+        return (residual1, residual2)
+
+    def pbx_equations_ll(candidates, xia, xib, ca, cb, la, lb, F, f, deltaf):
+        """
+        Eq 11, 12
+        """
+        pbb, pba = candidates
+        if xia < 0 or xia > 1 or xib < 0 or xib > 1:
+            return (math.inf, math.inf)
+        vbopt = vbopt_diff_ll(pbb, pba, xia, xib, cb, F, deltaf)
+        residual1 = pbb - (cb + (1-F(xib))*lb/f(xib) - deltaf*vbopt)
+        residual2 = pba - (cb + F(xia)*la/f(xia) - deltaf*vbopt)
+        return (residual1, residual2)
+
     if sa == 0 and sb == 0:  # ml
 
         xia, xib = fsolve(xi_equations_ml,  (.5, .5),
@@ -187,8 +231,15 @@ def ll_get_metrics_theory(ca, cb, F, f, deltaf, dist, la, lb, sa, sb):
         vaao, vabo, vbbo, vbao = get_vopts_ll(
             paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
 
-    else:
-        return NotImplementedError
+    else: #ll
+        xia, xib = fsolve(xi_equations_ll,  (.5, .5),
+                              (ca, cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
+        paa, pab = fsolve(pax_equations_ll, (ca, ca), (xia, xib, ca,
+                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
+        pbb, pba = fsolve(pbx_equations_ll, (cb, cb), (xia, xib, ca,
+                                                        cb, la, lb, F, f, deltaf))  # hardcoded initial point for fsolve
+        vaao, vabo, vbbo, vbao = get_vopts_ll(
+            paa, pab, pbb, pba, xia, xib, deltaf, deltaf, ca, cb, F)
 
     return paa, pab, pbb, pba, xia, xib, vaao, vabo, vbbo, vbao
 
